@@ -1,95 +1,165 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<title>RockScript App</title>
-<link href="https://fonts.googleapis.com/css?family=Roboto+Slab:700,100" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
-<script src="https://unpkg.com/react@latest/dist/react.js"></script>
-<script src="https://unpkg.com/react-dom@latest/dist/react-dom.js"></script>
-<style>
+  <meta charset="UTF-8"/>
+  <title>RockScript App</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Slab:700,100" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
+  <script src="https://unpkg.com/react@latest/dist/react.js"></script>
+  <script src="https://unpkg.com/react-dom@latest/dist/react-dom.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+  <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.2.1.min.js"></script>
+  <style>
 
-body {
-  margin: 0;
-  font-family: "Open Sans";
-}
+    body {
+      margin: 0;
+      font-family: "Open Sans";
+    }
 
-#main {
-  display: flex;
-  flex-direction: row;
-  position: absolute;
-  height: 100%;
-  min-width: 100%;
-}
+    a {
+      text-decoration: none;
+      font-weight: bold;
+    }
 
-#menu {
-  background-color: #2B7191;
-  color: white;
-  min-width: 150px;
-  height: 100%;
-}
+    #main {
+      display: flex;
+      flex-direction: row;
+      position: absolute;
+      height: 100%;
+      min-width: 100%;
+    }
 
-.menu-item {
-  display: flex;
-  padding: 10px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border: solid #8DA7B7;
-  border-width: 0 0 1px 0;
-  font-size: .8em;
-}
+    #menu {
+      background-color: #2B7191;
+      color: white;
+      min-width: 150px;
+      height: 100%;
+    }
 
-.logo {
-  font-family: "Roboto Slab";
-  font-weight: 700;
-  opacity: .7;
-  font-size: 1em;
-  vertical-align: middle;
-}
+    .menu-item {
+      display: flex;
+      padding: 10px;
+      height: 40px;
+      align-items: center;
+      justify-content: center;
+      border: solid #8DA7B7;
+      border-width: 0 0 1px 0;
+      font-size: .8em;
+      color: white;
+    }
 
-.logo img {
-  height: 1.1em;
-  opacity: 50;
-  vertical-align: -15%;
-}
+    .menu-item:hover {
+      background-color: #4383a0;
+    }
 
-#content {
-  display: flex;
-  flex-direction: column;
-  min-width: 100%;
-}
+    .logo {
+      display: flex;
+      height: 40px;
+      align-items: center;
+      justify-content: center;
+      background-color: #73a2b7;
+      font-family: "Roboto Slab";
+      font-weight: 700;
+      opacity: .7;
+    }
 
-.top-bar {
-  height: 60px;
-  width: 100%;
-  background-color: #eee;
-}
+    .logo img {
+      height: 1.1em;
+      opacity: 50;
+      vertical-align: -15%;
+    }
 
+    #content {
+      display: flex;
+      flex-direction: column;
+      min-width: 100%;
+    }
 
-</style>
+    .top-bar {
+      height: 40px;
+      width: 100%;
+      background-color: #d1dfe6;
+    }
+
+  </style>
+
 </head>
 <body>
 
 <div id="main">
   <div id="menu">
-    <div class="menu-item logo-item">
-      <div class="logo">
-        <img src="hand-white.png"/> RockScript
-      </div>
+    <div class="logo">
+      <img src="hand-white.png"/> RockScript
     </div>
-    <div class="menu-item">
+    <a class="menu-item" href="#" onclick="showScripts()">
       Scripts
-    </div>
+    </a>
   </div>
   <div id="content">
     <div class="top-bar">
     </div>
     <div id="main-panel">
-      Hello
     </div>
   </div>
 </div>
+
+<script type="text/babel">
+
+  function showScripts() {
+    console.log('Loading scripts');
+    showInMainPanel(<ScriptsLoading />);
+    const scripts = $.ajax({
+      url: "localhost:3652/query",
+      method: "POST",
+      data: JSON.stringify({scriptsQuery:{}})
+    }).done(function(data){
+      showInMainPanel(<Scripts scripts={data} />);
+    }).fail(function(jqXHR, textStatus, errorThrown){
+      console.log(textStatus+': '+errorThrown);
+      showInMainPanel(<ErrorText message={textStatus+': '+errorThrown} />);
+    });
+  }
+
+  function showInMainPanel(element) {
+    ReactDOM.render(element, document.getElementById('main-panel'));
+  }
+
+  function ScriptsLoading(props) {
+    return (
+        <div>
+          <h1>Scripts</h1>
+          <p>Loading... (spinner)</p>
+        </div>
+    );
+  }
+
+  function ErrorText(props) {
+    return (
+        <div class="error">
+          {props.message}
+        </div>
+    );
+  }
+
+  function Scripts(props) {
+    return (
+        <div>
+          <h1>Scripts</h1>
+          <table>
+            {props.scripts.map(script => (
+                <tr>
+                  <td>{script.name}</td>
+                  <td id={'script-'+script.id}>?</td>
+                  <td>?</td>
+                </tr>
+            ))}
+          </table>
+        </div>
+    );
+  }
+
+</script>
+
 
 </body>
 </html>
