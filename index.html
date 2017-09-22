@@ -3,12 +3,21 @@
 <head>
   <meta charset="UTF-8"/>
   <title>RockScript App</title>
-  <link href="https://fonts.googleapis.com/css?family=Roboto+Slab:700,100" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet">
-  <script src="https://unpkg.com/react@latest/dist/react.js"></script>
-  <script src="https://unpkg.com/react-dom@latest/dist/react-dom.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
-  <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.2.1.min.js"></script>
+  <!-- https://fonts.googleapis.com/css?family=Roboto+Slab:700,100 -->
+  <link href="fonts/RobotoSlab700100" rel="stylesheet">
+  <!-- https://fonts.googleapis.com/css?family=Open+Sans:400,700 -->
+  <link href="fonts/OpenSans400700" rel="stylesheet">
+  <!-- https://unpkg.com/vue -->
+  <script src="js/vue-2.4.4.js"></script>
+  <!--https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.2.1.min.js-->
+  <script src="js/jquery-3.2.1.min.js"></script>
+  <!--https://momentjs.com/downloads/moment.js-->
+  <script src="js/moment-2.18.1.js"></script>
+
+  <!--Generated from http://prismjs.com/download.html-->
+  <script src="js/prism.js"></script>
+  <!--Generated from http://prismjs.com/download.html-->
+  <link rel="stylesheet" href="css/prism.css">
   <style>
 
     body {
@@ -21,142 +30,243 @@
       font-weight: bold;
     }
 
+    h1 {
+      font-family:"Roboto Slab";
+      font-weight: 100;
+    }
+
     #main {
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       position: absolute;
       height: 100%;
       min-width: 100%;
     }
 
-    #menu {
+    .menu {
+      display: flex;
+      flex-direction: row;
       background-color: #2B7191;
+      height: 70px;
+      width: 100%;
       color: white;
-      min-width: 150px;
-      height: 100%;
+      line-height: 70px;
+    }
+
+    .logo {
+      font-family: "Roboto Slab";
+      font-weight: 700;
+      opacity: .7;
+      vertical-align: middle;
+      margin: 0 70px 0 30px;
+    }
+
+    .logo img {
+      height: 1.1em;
+      opacity: 50;
+      vertical-align: -4%;
     }
 
     .menu-item {
       display: flex;
-      padding: 10px;
-      height: 40px;
+      height: 100%;
       align-items: center;
       justify-content: center;
+      min-width: 100px;
+      padding: 0 15px;
       border: solid #8DA7B7;
-      border-width: 0 0 1px 0;
+      border-width: 0 0 0 1px;
       font-size: .8em;
       color: white;
+    }
+
+    .last-menu-item {
+      border-right-width: 1px;
     }
 
     .menu-item:hover {
       background-color: #4383a0;
     }
 
-    .logo {
-      display: flex;
-      height: 40px;
-      align-items: center;
-      justify-content: center;
-      background-color: #73a2b7;
-      font-family: "Roboto Slab";
-      font-weight: 700;
-      opacity: .7;
-    }
-
-    .logo img {
-      height: 1.1em;
-      opacity: 50;
-      vertical-align: -15%;
-    }
-
     #content {
-      display: flex;
-      flex-direction: column;
-      min-width: 100%;
+      padding: 5px 30px 0 30px;
+      height: 80%;
     }
 
-    .top-bar {
-      height: 40px;
-      width: 100%;
+    table {
+      border-spacing: 0;
+    }
+
+    tr.row td {
+      border: 0px solid #ddd;
+      border-top-width: 1px;
+    }
+
+    tr.clickable:hover {
+      cursor: pointer;
       background-color: #d1dfe6;
     }
 
+    th {
+      text-align: left;
+      font-size: .7em;
+      font-weight: normal;
+      color: #999;
+      padding: 5px 10px;
+    }
+    td {
+      padding: 10px;
+    }
+
+    .script-version {
+      color: #999;
+    }
+
+    pre.script {
+      flex:1;
+      overflow: auto;
+    }
+
+    .script-execution-viewer {
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+      width: 100%;
+    }
+
+    .script-execution-viewer .script {
+      overflow-y: auto;
+    }
+    .script-execution-viewer .events {
+      width: 25%;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    .script-execution-viewer .runtime-state {
+      width: 33%;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    .fullheight {
+      height: 100%;
+    }
+
+    .script-execution-viewer .title {
+      font-weight: bold;
+      color: #bbb;
+    }
+
+    .event {
+      padding: 5px 0;
+      border: 0 solid #ddd;
+      border-top-width: 1px;
+      overflow-wrap: break-word;
+    }
   </style>
 
 </head>
 <body>
 
 <div id="main">
-  <div id="menu">
+  <div class="menu">
     <div class="logo">
-      <img src="hand-white.png"/> RockScript
+      <img src="img/hand-white.png"/> RockScript
     </div>
-    <a class="menu-item" href="#" onclick="showScripts()">
-      Scripts
+    <a class="menu-item last-menu-item" href="#scriptExecutions" v-on:click="showScriptExecutions">
+      Script executions
     </a>
   </div>
   <div id="content">
-    <div class="top-bar">
+    <div v-if="mainPanel.scriptExecutions">
+      <h1>Script Executions</h1>
+      <table>
+        <tr>
+          <th>Id</th>
+          <th>Script</th>
+          <th>Started</th>
+          <th>Status</th>
+        </tr>
+        <tr class="row clickable" v-for="scriptExecution in mainPanel.scriptExecutions" v-on:click="showScriptExecution(scriptExecution.id)">
+          <td>{{scriptExecution.id}}</td>
+          <td>{{scriptExecution.scriptShortName}} <span class="script-version">(v{{scriptExecution.scriptVersion}})</span></td>
+          <td>{{moment(scriptExecution.start).fromNow()}}</td>
+          <td>{{scriptExecution.end ? 'Ended' : 'Waiting'}}</td>
+        </tr>
+      </table>
     </div>
-    <div id="main-panel">
+    <div class="fullheight" v-if="mainPanel.scriptExecution">
+      <h1>Script Execution {{mainPanel.scriptExecution.id}}</h1>
+      <div class="script-execution-viewer">
+        <pre class="script" data-line="4"><code class="language-javascript">{{mainPanel.scriptExecution.scriptText}}</code></pre>
+        <div class="events">
+          <div class="title">Events</div>
+          <div class="event" v-for="event in mainPanel.scriptExecution.events">
+            {{event.text}}
+          </div>
+        </div>
+        <div class="runtime-state">
+          <div class="title">Runtime state</div>
+        </div>
+      </div>
+
+    </div>
+    <div v-if="mainPanel.message">
+      {{ mainPanel.message }}
     </div>
   </div>
 </div>
 
-<script type="text/babel">
+<script language="JavaScript">
 
-  function showScripts() {
-    console.log('Loading scripts');
-    showInMainPanel(<ScriptsLoading />);
-    const scripts = $.ajax({
-      url: "localhost:3652/query",
-      method: "POST",
-      data: JSON.stringify({scriptsQuery:{}})
-    }).done(function(data){
-      showInMainPanel(<Scripts scripts={data} />);
-    }).fail(function(jqXHR, textStatus, errorThrown){
-      console.log(textStatus+': '+errorThrown);
-      showInMainPanel(<ErrorText message={textStatus+': '+errorThrown} />);
+var app = new Vue({
+  el: '#main',
+  data: {
+    mainPanel : {}
+  },
+  methods: {
+    showScriptExecutions: function () {
+      var appData = this;
+      console.log('Loading scripts');
+      const scripts = $.get(
+          'http://localhost:3652/scriptExecutions',
+          function(data){
+            console.log('Response: '+JSON.stringify(data));
+            appData.mainPanel = {scriptExecutions: data};
+          })
+          .fail(function(jqXHR, textStatus, errorThrown){
+            console.log(textStatus+': '+errorThrown);
+            appData.mainPanel = {message: textStatus+': '+errorThrown};
+          });
+    },
+    showScriptExecution: function(scriptExecutionId) {
+      var appData = this;
+      console.log('Showing script execution '+scriptExecutionId);
+      const scripts = $.get(
+          'http://localhost:3652/scriptExecution/'+scriptExecutionId,
+          function(data){
+            console.log('Response: '+JSON.stringify(data));
+            appData.mainPanel = {scriptExecution: data};
+          })
+          .fail(function(jqXHR, textStatus, errorThrown){
+            console.log(textStatus+': '+errorThrown);
+            appData.mainPanel = {message: textStatus+': '+errorThrown};
+          });
+    },
+    moment: function (date) {
+      return moment(date);
+    }
+  },
+  updated: function() {
+    $('pre code').each(function(i, block) {
+      Prism.highlightAll();
     });
   }
-
-  function showInMainPanel(element) {
-    ReactDOM.render(element, document.getElementById('main-panel'));
-  }
-
-  function ScriptsLoading(props) {
-    return (
-        <div>
-          <h1>Scripts</h1>
-          <p>Loading... (spinner)</p>
-        </div>
-    );
-  }
-
-  function ErrorText(props) {
-    return (
-        <div class="error">
-          {props.message}
-        </div>
-    );
-  }
-
-  function Scripts(props) {
-    return (
-        <div>
-          <h1>Scripts</h1>
-          <table>
-            {props.scripts.map(script => (
-                <tr>
-                  <td>{script.name}</td>
-                  <td id={'script-'+script.id}>?</td>
-                  <td>?</td>
-                </tr>
-            ))}
-          </table>
-        </div>
-    );
-  }
+});
 
 </script>
 
