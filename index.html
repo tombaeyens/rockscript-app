@@ -172,7 +172,7 @@
       overflow-wrap: break-word;
     }
 
-    .selected-event {
+    .selectedEvent {
       background-color: #d1dfe6;
     }
   </style>
@@ -210,17 +210,21 @@
     <div class="fullheight" v-if="mainPanel.scriptExecution">
       <h1>Script Execution {{mainPanel.scriptExecution.id}}</h1>
       <div class="script-execution-viewer">
-        <pre id="scriptpre" class="script" data-line="4"><code class="language-javascript">{{mainPanel.scriptExecution.scriptText}}</code></pre>
+        <pre id="scriptpre" class="script" data-line=""><code class="language-javascript">{{mainPanel.scriptExecution.scriptText}}</code></pre>
         <div class="events">
           <div class="title">Events</div>
-          <div class="event" v-for="event in mainPanel.scriptExecution.events" v-bind:class="isSelectedEvent(event.index)">
+          <div class="event" v-for="(event,index) in mainPanel.scriptExecution.events" :class="{ selectedEvent: index === mainPanel.scriptExecution.eventIndex }">
             {{renderEvent(event)}}
           </div>
         </div>
         <div class="runtime-state">
-          <div class="title">Runtime state</div>
-          <button v-on:click="previousEvent">Previous event</button>
-          <button v-on:click="nextEvent">Next event</button>
+          <div class="title">Scroll events</div>
+          <button class="event-scroll-button" v-on:click="previousEvent">Up</button>
+          <button class="event-scroll-button" v-on:click="nextEvent">Down</button>
+          <div class="title">Variables</div>
+          TODO
+          <div class="title">Activity continuations</div>
+          TODO
         </div>
       </div>
 
@@ -235,8 +239,8 @@
 
 var app = new Vue({
   el: '#main',
-  data: {
-    mainPanel : {}
+  data:  {
+    mainPanel: {}
   },
   methods: {
     showScriptExecutions: function () {
@@ -256,16 +260,12 @@ var app = new Vue({
     showScriptExecution: function(scriptExecutionId) {
       var appData = this;
       console.log('Showing script execution '+scriptExecutionId);
-      const scripts = $.get(
+      $.get(
           'http://localhost:3652/scriptExecution/'+scriptExecutionId,
           function(data){
             console.log('Response: '+JSON.stringify(data));
             appData.mainPanel = {scriptExecution: data};
-            var events = appData.mainPanel.scriptExecution.events;
-            for (var i=0; i<events.length; i++){
-              events[i].index = i;
-            }
-            appData.mainPanel.scriptExecution.currentEventIndex = 0;
+            appData.mainPanel.scriptExecution.eventIndex = 0;
           })
           .fail(function(jqXHR, textStatus, errorThrown){
             console.log(textStatus+': '+errorThrown);
@@ -286,27 +286,41 @@ var app = new Vue({
       return JSON.stringify(event);
     },
     previousEvent: function() {
-      this.mainPanel.scriptExecution.currentEventIndex--;
+      this.mainPanel.scriptExecution.eventIndex--;
     },
     nextEvent: function() {
-      this.mainPanel.scriptExecution.currentEventIndex++;
-      $('#scriptpre').attr('data-line', ''+(this.mainPanel.scriptExecution.currentEventIndex+1));
-      Prism.highlightAll();
-    },
-    isSelectedEvent: function(index) {
-      if (index==this.mainPanel.scriptExecution.currentEventIndex) {
-        return 'selected-event';
-      }
-      return '';
+      this.mainPanel.scriptExecution.eventIndex++;
+      // Next 2 lines are a workaround because the eventIndex change does not trigger
+      // a rerendering of the events in vue
+      this.mainPanel.scriptExecution.events.push({});
+      this.mainPanel.scriptExecution.events.pop();
+      highlightScriptLine(this.mainPanel.scriptExecution);
     }
   },
   updated: function() {
-    if (this.mainPanel.scriptExecution) {
-      $('#scriptpre').attr('data-line', ''+this.mainPanel.scriptExecution.currentEventIndex+1);
-      Prism.highlightAll();
-    }
+    Prism.highlightAll();
   }
 });
+
+function highlightScriptLine(scriptExecution) {
+  var event = scriptExecution.events[scriptExecution.eventIndex];
+  var line = getLine(event);
+  console.log('line: '+line);
+  if (line) {
+    console.log('Highlighting script line: '+line);
+    $('#scriptpre').attr('data-line', line);
+    Prism.highlightAll();
+  } else {
+    console.log('Not highlighting script line: '+line);
+  }
+}
+
+function getLine(event) {
+  for(var eventType in event) {
+    return event[eventType].line;
+  }
+  return null;
+}
 
 </script>
 
