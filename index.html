@@ -25,6 +25,10 @@
       font-family: "Open Sans";
     }
 
+    button {
+      font-family: "Open Sans";
+    }
+
     a {
       text-decoration: none;
       font-weight: bold;
@@ -154,6 +158,7 @@
       flex-direction: column;
       padding: 0 15px 0 15px;
       overflow-y: auto;
+      align-items: left;
     }
 
     .fullheight {
@@ -173,7 +178,22 @@
     }
 
     .selectedEvent {
-      background-color: #d1dfe6;
+      background-color: #FFDEC9;
+    }
+
+    .event-scroll-button {
+      width: 100px;
+      background-color: #DD5E17;
+      color: white;
+      font-weight: 700;
+      margin: 5px 0;
+      border: 0px;
+      border-radius: 5px;
+      padding: 10px;
+    }
+
+    .next-title {
+      margin-top: 15px;
     }
   </style>
 
@@ -214,16 +234,22 @@
         <div class="events">
           <div class="title">Events</div>
           <div class="event" v-for="(event,index) in mainPanel.scriptExecution.events" :class="{ selectedEvent: index === mainPanel.scriptExecution.eventIndex }">
-            {{renderEvent(event)}}
+            <div v-if="event.scriptStarted"><script-started-event /></div>
+            <div v-if="event.variableCreated"><variable-created-event :varname="event.variableCreated.variableName" :value="event.variableCreated.valueJson" /></div>
+            <div v-if="event.activityStarted"><activity-started-event :activity="event.activityStarted.activityName" :executionid="event.activityStarted.executionId" /></div>
+            <div v-if="event.activityWaiting"><activity-waiting-event :executionid="event.activityWaiting.executionId" /></div>
+            <div v-if="event.activityEnd"><activity-end-event :executionid="event.activityEnd.executionId" :value="event.activityEnd.result" /></div>
+            <div v-if="event.scriptEnded"><script-ended-event /></div>
           </div>
         </div>
         <div class="runtime-state">
           <div class="title">Scroll events</div>
           <button class="event-scroll-button" v-on:click="previousEvent">Up</button>
           <button class="event-scroll-button" v-on:click="nextEvent">Down</button>
-          <div class="title">Variables</div>
+
+          <div class="title next-title">Variables</div>
           TODO
-          <div class="title">Activity continuations</div>
+          <div class="title next-title">Activity continuations</div>
           TODO
         </div>
       </div>
@@ -236,6 +262,34 @@
 </div>
 
 <script language="JavaScript">
+
+Vue.component('script-started-event', {
+  template: '<div>Script started</div>'
+});
+
+Vue.component('variable-created-event', {
+  props: ['varname', 'value'],
+  template: '<div>Variable {{varname}} was created with value  <pre><code>{{value}}</code></pre></div>'
+});
+
+Vue.component('activity-started-event', {
+  props: ['activity', 'executionid'],
+  template: '<div>Activity {{activity}} was started: {{executionid}}</div>'
+});
+
+Vue.component('activity-waiting-event', {
+  props: ['executionid'],
+  template: '<div>Activity {{executionid}} waiting for callback</div>'
+});
+
+Vue.component('activity-end-event', {
+  props: ['executionid', 'value'],
+  template: '<div>Activity {{executionid}} ends with return value <pre><code>{{value}}</code></pre></div>'
+});
+
+Vue.component('script-ended-event', {
+  template: '<div>Script ended</div>'
+});
 
 var app = new Vue({
   el: '#main',
@@ -275,26 +329,19 @@ var app = new Vue({
     moment: function (date) {
       return moment(date);
     },
-    renderEvent: function (event) {
-      if (event.scriptStarted) {
-        return "Script started"
-      } else if (event.variableCreated) {
-        return "Variable "+event.variableCreated.variableName+" was created with value "+event.variableCreated.valueJson;
-      } else if (event.activityStarted) {
-        return "Activity "+event.activityStarted.activityName+" was started";
-      }
-      return JSON.stringify(event);
-    },
     previousEvent: function() {
-      this.mainPanel.scriptExecution.eventIndex--;
+      var scriptExecution = this.mainPanel.scriptExecution;
+      if (scriptExecution.eventIndex>0) {
+        this.mainPanel.scriptExecution.eventIndex--;
+        highlightScriptLine(this.mainPanel.scriptExecution);
+      }
     },
     nextEvent: function() {
-      this.mainPanel.scriptExecution.eventIndex++;
-      // Next 2 lines are a workaround because the eventIndex change does not trigger
-      // a rerendering of the events in vue
-      this.mainPanel.scriptExecution.events.push({});
-      this.mainPanel.scriptExecution.events.pop();
-      highlightScriptLine(this.mainPanel.scriptExecution);
+      var scriptExecution = this.mainPanel.scriptExecution;
+      if (scriptExecution.eventIndex<scriptExecution.events.length-1) {
+        this.mainPanel.scriptExecution.eventIndex++;
+        highlightScriptLine(this.mainPanel.scriptExecution);
+      }
     }
   },
   updated: function() {
@@ -303,15 +350,16 @@ var app = new Vue({
 });
 
 function highlightScriptLine(scriptExecution) {
+  // Next 2 lines are a workaround because the eventIndex change does not trigger
+  // a rerendering of the events in vue
+  scriptExecution.events.push({});
+  scriptExecution.events.pop();
+
   var event = scriptExecution.events[scriptExecution.eventIndex];
   var line = getLine(event);
-  console.log('line: '+line);
   if (line) {
-    console.log('Highlighting script line: '+line);
     $('#scriptpre').attr('data-line', line);
     Prism.highlightAll();
-  } else {
-    console.log('Not highlighting script line: '+line);
   }
 }
 
