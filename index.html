@@ -7,8 +7,6 @@
   <link href="fonts/RobotoSlab700100.css" rel="stylesheet">
   <!-- https://fonts.googleapis.com/css?family=Open+Sans:400,700 -->
   <link href="fonts/OpenSans400700.css" rel="stylesheet">
-  <!-- https://unpkg.com/vue -->
-  <script src="js/vue-2.4.4.js"></script>
   <!--https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.2.1.min.js-->
   <script src="js/jquery-3.2.1.min.js"></script>
   <!--https://momentjs.com/downloads/moment.js-->
@@ -205,156 +203,140 @@
     <div class="logo">
       <img src="img/hand-white.png"/> RockScript
     </div>
-    <a class="menu-item last-menu-item" href="#scriptExecutions" v-on:click="showScriptExecutions">
+    <a class="menu-item last-menu-item" href="#scriptExecutions" onclick="showScriptExecutions()">
       Script executions
     </a>
   </div>
   <div id="content">
-    <div v-if="mainPanel.scriptExecutions">
-      <h1>Script Executions</h1>
-      <table>
-        <tr>
-          <th>Id</th>
-          <th>Script</th>
-          <th>Started</th>
-          <th>Status</th>
-        </tr>
-        <tr class="row clickable" v-for="scriptExecution in mainPanel.scriptExecutions" v-on:click="showScriptExecution(scriptExecution.id)">
-          <td>{{scriptExecution.id}}</td>
-          <td>{{scriptExecution.scriptShortName}} <span class="script-version">(v{{scriptExecution.scriptVersion}})</span></td>
-          <td>{{moment(scriptExecution.start).fromNow()}}</td>
-          <td>{{scriptExecution.end ? 'Ended' : 'Waiting'}}</td>
-        </tr>
-      </table>
-    </div>
-    <div class="fullheight" v-if="mainPanel.scriptExecution">
-      <h1>Script Execution {{mainPanel.scriptExecution.id}}</h1>
-      <div class="script-execution-viewer">
-        <pre id="scriptpre" class="script" data-line=""><code class="language-javascript">{{mainPanel.scriptExecution.scriptText}}</code></pre>
-        <div class="events">
-          <div class="title">Events</div>
-          <div class="event" v-for="(event,index) in mainPanel.scriptExecution.events" :class="{ selectedEvent: index === mainPanel.scriptExecution.eventIndex }">
-            <div v-if="event.scriptStarted"><script-started-event /></div>
-            <div v-if="event.variableCreated"><variable-created-event :varname="event.variableCreated.variableName" :value="event.variableCreated.valueJson" /></div>
-            <div v-if="event.activityStarted"><activity-started-event :activity="event.activityStarted.activityName" :executionid="event.activityStarted.executionId" /></div>
-            <div v-if="event.activityWaiting"><activity-waiting-event :executionid="event.activityWaiting.executionId" /></div>
-            <div v-if="event.activityEnd"><activity-end-event :executionid="event.activityEnd.executionId" :value="event.activityEnd.result" /></div>
-            <div v-if="event.scriptEnded"><script-ended-event /></div>
-          </div>
-        </div>
-        <div class="runtime-state">
-          <div class="title">Scroll events</div>
-          <button class="event-scroll-button" v-on:click="previousEvent">Up</button>
-          <button class="event-scroll-button" v-on:click="nextEvent">Down</button>
-
-          <div class="title next-title">Variables</div>
-          TODO
-          <div class="title next-title">Activity continuations</div>
-          TODO
-        </div>
-      </div>
-
-    </div>
-    <div v-if="mainPanel.message">
-      {{ mainPanel.message }}
-    </div>
   </div>
 </div>
 
 <script language="JavaScript">
 
-Vue.component('script-started-event', {
-  template: '<div>Script started</div>'
-});
+function showScriptExecutions() {
+  console.log('Loading scripts');
+  const scripts = $.get(
+    'http://localhost:3652/scriptExecutions',
+    function(data){
+      $('#content').html(createScriptExecutions(data));
+    })
+    .fail(function(jqXHR, textStatus, errorThrown){
+      $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
+    });
+};
 
-Vue.component('variable-created-event', {
-  props: ['varname', 'value'],
-  template: '<div>Variable {{varname}} was created with value  <pre><code>{{value}}</code></pre></div>'
-});
+function createScriptExecutions(scriptExecutions) {
+  console.log('Showing script executions');
+  let html =
+    '<div>' +
+      '<h1>Script Executions</h1>' +
+      '<table>' +
+        '<tr>' +
+          '<th>Id</th>' +
+          '<th>Script</th>' +
+          '<th>Started</th>' +
+          '<th>Status</th>' +
+        '</tr>';
+  scriptExecutions.forEach(function(scriptExecution) {
+    html +=
+        '<tr class="row clickable" onclick="showScriptExecution(\''+scriptExecution.id+'\')">' +
+          '<td>' + scriptExecution.id + '</td>' +
+          '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.scriptVersion + ')</span></td>' +
+          '<td>' + moment(scriptExecution.start).fromNow() + '</td>' +
+          '<td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
+        '</tr>';
+  });
+  return html +=
+      '</table>' +
+    '</div>';
+}
 
-Vue.component('activity-started-event', {
-  props: ['activity', 'executionid'],
-  template: '<div>Activity {{activity}} was started: {{executionid}}</div>'
-});
+function showScriptExecution(scriptExecutionId) {
+  console.log('Showing script execution '+scriptExecutionId);
+  $.get(
+    'http://localhost:3652/scriptExecution/'+scriptExecutionId,
+    function(data){
+      $('#content').html(createScriptExecution(data));
+      $('#events')[0].scriptExecution = data;
+      Prism.highlightAll();
+      highlightEvent(0);
+    })
+    .fail(function(jqXHR, textStatus, errorThrown){
+      console.log(textStatus+': '+errorThrown);
+      $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
+    });
+}
 
-Vue.component('activity-waiting-event', {
-  props: ['executionid'],
-  template: '<div>Activity {{executionid}} waiting for callback</div>'
-});
-
-Vue.component('activity-end-event', {
-  props: ['executionid', 'value'],
-  template: '<div>Activity {{executionid}} ends with return value <pre><code>{{value}}</code></pre></div>'
-});
-
-Vue.component('script-ended-event', {
-  template: '<div>Script ended</div>'
-});
-
-var app = new Vue({
-  el: '#main',
-  data:  {
-    mainPanel: {}
-  },
-  methods: {
-    showScriptExecutions: function () {
-      var appData = this;
-      console.log('Loading scripts');
-      const scripts = $.get(
-          'http://localhost:3652/scriptExecutions',
-          function(data){
-            console.log('Response: '+JSON.stringify(data));
-            appData.mainPanel = {scriptExecutions: data};
-          })
-          .fail(function(jqXHR, textStatus, errorThrown){
-            console.log(textStatus+': '+errorThrown);
-            appData.mainPanel = {message: textStatus+': '+errorThrown};
-          });
-    },
-    showScriptExecution: function(scriptExecutionId) {
-      var appData = this;
-      console.log('Showing script execution '+scriptExecutionId);
-      $.get(
-          'http://localhost:3652/scriptExecution/'+scriptExecutionId,
-          function(data){
-            console.log('Response: '+JSON.stringify(data));
-            appData.mainPanel = {scriptExecution: data};
-            appData.mainPanel.scriptExecution.eventIndex = 0;
-          })
-          .fail(function(jqXHR, textStatus, errorThrown){
-            console.log(textStatus+': '+errorThrown);
-            appData.mainPanel = {message: textStatus+': '+errorThrown};
-          });
-    },
-    moment: function (date) {
-      return moment(date);
-    },
-    previousEvent: function() {
-      var scriptExecution = this.mainPanel.scriptExecution;
-      if (scriptExecution.eventIndex>0) {
-        this.mainPanel.scriptExecution.eventIndex--;
-        highlightScriptLine(this.mainPanel.scriptExecution);
-      }
-    },
-    nextEvent: function() {
-      var scriptExecution = this.mainPanel.scriptExecution;
-      if (scriptExecution.eventIndex<scriptExecution.events.length-1) {
-        this.mainPanel.scriptExecution.eventIndex++;
-        highlightScriptLine(this.mainPanel.scriptExecution);
-      }
+function createScriptExecution(scriptExecution) {
+  let html =
+    '<div class="fullheight">' +
+      '<h1>Script Execution '+scriptExecution.id+'</h1>' +
+      '<div class="script-execution-viewer">' +
+        '<pre id="scriptpre" class="script" data-line=""><code class="language-javascript">'+scriptExecution.scriptText+'</code></pre>' +
+        '<div id="events" class="events">' +
+          '<div class="title">Events</div>';
+  scriptExecution.events.forEach(function (event, i){
+    html += '<div id="event-'+i+'" class="event">';
+    if (event.scriptStarted) {
+      html += '<div>Script started</div>';
+    } else if (event.variableCreated) {
+      let e = event.variableCreated;
+      html += '<div>Variable ' + e.variableName + ' was created with value  <pre><code>' /* + JSON.stringify(e.valueJson) */ + '</code></pre></div>';
+    } else if (event.activityStarted) {
+      let e = event.activityStarted;
+      html += '<div>Activity ' + e.activityName + ' was started: ' + e.executionId + '</div>';
+    } else if (event.activityWaiting) {
+      let e = event.activityWaiting;
+      html += '<div>Activity ' + e.executionId + ' waiting for callback</div>';
+    } else if (event.activityEnd) {
+      let e = event.activityEnd;
+      html += '<div>Activity ' + e.executionId + ' ends with return value <pre><code>' /* + JSON.stringify(e.result) */ + '</code></pre></div>';
+    } else if (event.scriptEnded) {
+      html += '<div>Script ended</div>';
     }
-  },
-  updated: function() {
-    Prism.highlightAll();
+    html += '</div>';
+  });
+  return html +
+        '</div>' +
+        '<div class="runtime-state">' +
+          '<div class="title">Scroll events</div>' +
+          '<button class="event-scroll-button" onclick="previousEvent()">Up</button>' +
+          '<button class="event-scroll-button" onclick="nextEvent()">Down</button>' +
+          '<div class="title next-title">Variables</div>' +
+            'TODO' +
+          '<div class="title next-title">Activity continuations</div>' +
+            'TODO' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function highlightEvent(index) {
+  let scriptExecution = getScriptExecution();
+  if (index>=0 && index<scriptExecution.events.length) {
+    let oldIndex = scriptExecution.eventIndex;
+    if (oldIndex || oldIndex==0) {
+      $('#event-'+oldIndex).removeClass('selectedEvent');
+    }
+    $('#event-'+index).addClass('selectedEvent');
+    scriptExecution.eventIndex = index;
+    highlightScriptLine(scriptExecution);
   }
-});
+}
+
+function getScriptExecution() {
+  return $('#events')[0].scriptExecution;
+}
+
+function previousEvent() {
+  highlightEvent(getScriptExecution().eventIndex-1);
+}
+
+function nextEvent() {
+  highlightEvent(getScriptExecution().eventIndex+1);
+}
 
 function highlightScriptLine(scriptExecution) {
-  // Next 2 lines are a workaround because the eventIndex change does not trigger
-  // a rerendering of the events in vue
-  scriptExecution.events.push({});
-  scriptExecution.events.pop();
-
   var event = scriptExecution.events[scriptExecution.eventIndex];
   var line = getLine(event);
   if (line) {
