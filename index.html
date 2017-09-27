@@ -281,7 +281,7 @@ function createScriptExecution(scriptExecution) {
       html += '<div>Script started</div>';
     } else if (event.variableCreated) {
       let e = event.variableCreated;
-      html += '<div>Variable ' + e.variableName + ' was created with value  <pre><code>' /* + JSON.stringify(e.valueJson) */ + '</code></pre></div>';
+      html += '<div>Variable ' + e.variableName + ' was created with value  <pre><code>' + JSON.stringify(e.valueJson, null, 2) + '</code></pre></div>';
     } else if (event.activityStarted) {
       let e = event.activityStarted;
       html += '<div>Activity ' + e.activityName + ' was started: ' + e.executionId + '</div>';
