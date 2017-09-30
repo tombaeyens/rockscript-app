@@ -37,6 +37,10 @@
       font-weight: 100;
     }
 
+    pre {
+      margin: 0;
+    }
+
     table {
       border-spacing: 0;
     }
@@ -78,7 +82,7 @@
       height: 70px;
       width: 100%;
       color: white;
-      line-height: 70px;
+      line-height: 62px;
     }
 
     .logo {
@@ -193,11 +197,19 @@
     .event-down {
       float:right;
       height: 16px;
+      vertical-align: bottom;
+    }
+
+    .event-scroll-buttons {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 15px;
     }
 
     .event-scroll-button {
       width: 100px;
       min-height: 40px;
+      display: flow-root;
       background-color: #DD5E17;
       color: white;
       font-weight: 700;
@@ -209,7 +221,7 @@
 
     code.eventdetails {
       width: 100%;
-      overflow: scroll;
+      overflow: auto;
       display: block;
     }
 
@@ -219,12 +231,6 @@
       width: 100%;
       background-color: #f8f8f8;
       font-size: .8em;
-    }
-
-    .event-scroll-buttons {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 15px;
     }
 
     .invisible {
@@ -375,26 +381,34 @@ function createScriptExecution(scriptExecution) {
     variables: {},
     continuations: {}
   };
+  var activityData = {};
   scriptExecution.events.forEach(function (event, i){
     html += '<div id="event-'+i+'" class="event">';
     if (event.scriptStarted) {
       html += '<div>Script started</div>';
     } else if (event.variableCreated) {
       let e = event.variableCreated;
-      html += expander('event-'+i)+'<div>Variable ' + e.variableName + ' was created' +
-          '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.valueJson, null, 2) + '</code></pre></div>';
-      scriptExecution.runtimeState.variables[e.variableName] = e.valueJson;
+      html += '<div><code>' + e.variableName + '</code> was created' +expander('event-'+i)+
+          '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.value, null, 2) + '</code></pre></div>';
+      scriptExecution.runtimeState.variables[e.variableName] = e.value;
     } else if (event.activityStarted) {
       let e = event.activityStarted;
-      html += '<div>Activity ' + e.activityName + ' was started: ' + e.executionId + '</div>';
-      scriptExecution.runtimeState.continuations[e.executionId] = { activityName: e.activityName, waiting:false };
+      html += '<div><code>' + e.serviceName + ' ' +e.activityName + ' ' + e.executionId +'</code> was started ' +
+          expander('event-'+i) +
+          '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.args, null, 2) + '</code></pre></div>';
+      activityData[e.executionId] = {
+        activityName: e.activityName,
+        serviceName: e.serviceName
+      };
     } else if (event.activityWaiting) {
       let e = event.activityWaiting;
-      html += '<div>Activity ' + e.executionId + ' waiting for callback</div>';
-      scriptExecution.runtimeState.continuations[e.executionId].waiting = true;
+      let a = activityData[e.executionId];
+      html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> waiting for callback</div>';
+      scriptExecution.runtimeState.continuations[e.executionId] = { activityName: a.activityName, serviceName: a.serviceName };
     } else if (event.activityEnd) {
       let e = event.activityEnd;
-      html += '<div>Activity ' + e.executionId + ' ends with return value <pre><code>' /* + JSON.stringify(e.result) */ + '</code></pre></div>';
+      let a = activityData[e.executionId];
+      html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value <pre><code>' /* + JSON.stringify(e.result) */ + '</code></pre></div>';
       delete scriptExecution.runtimeState.continuations[e.executionId];
     } else if (event.scriptEnded) {
       html += '<div>Script ended</div>';
@@ -405,8 +419,8 @@ function createScriptExecution(scriptExecution) {
   return html +
         '</div>' +
         '<div class="runtime-state">' +
-          '<div class="title">Scroll events</div>' +
           '<div class="event-scroll-buttons">' +
+            '<div class="title">Scroll events</div>' +
             '<button class="event-scroll-button" onclick="previousEvent()">Up</button>' +
             '<button class="event-scroll-button" onclick="nextEvent()">Down</button>' +
           '</div>' +
@@ -451,7 +465,7 @@ function highlightEvent(index) {
         .html(variablesHtml(scriptExecution.events[index].runtimeState.variables));
 
     $('#runtime-state-continuations')
-        .html(JSON.stringify(scriptExecution.events[index].runtimeState.continuations));
+        .html(continuationsHtml(scriptExecution.events[index].runtimeState.continuations));
   }
 }
 
@@ -459,7 +473,6 @@ function variablesHtml(runtimeVariables) {
   var html = '<div class="variables flexcolumn">';
   for (var variableName in runtimeVariables) {
     if (runtimeVariables.hasOwnProperty(variableName)) {
-      console.log(JSON.stringify(runtimeVariables[variableName]));
       html +=
           '<div class="variable-name">' +
             '<a class="variable-expander" onclick="toggleVariableVisibility(\''+variableName+'\');"><img class="event-down" src="img/down.png"/></a>' +
@@ -468,6 +481,20 @@ function variablesHtml(runtimeVariables) {
           '<div id="variable-'+variableName+'-summary" class="variable-summary"><code>' + JSON.stringify(runtimeVariables[variableName]) + '</code></div>' +
           '<div id="variable-'+variableName+'-details" class="variable-details invisible">' +
             '<pre>' + JSON.stringify(runtimeVariables[variableName], null, 2) + '</pre>' +
+          '</div>';
+    }
+  }
+  return html + '</div>';
+}
+
+function continuationsHtml(continuations) {
+  var html = '<div class="continuations flexcolumn">';
+  for (var executionId in continuations) {
+    if (continuations.hasOwnProperty(executionId)) {
+      var a = continuations[executionId];
+      html +=
+          '<div class="continuation">' +
+          a.serviceName+' '+a.activityName+' '+executionId +
           '</div>';
     }
   }
