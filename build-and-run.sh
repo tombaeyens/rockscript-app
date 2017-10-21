@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
-mvn -DskipTests -f ../rockscript/pom.xml clean install
+mvn -f ../rockscript/pom.xml -Pizza clean install
 mvn -Pizza clean install
-rock server
+cd ../rockscript
+java -jar /Code/rockscript-app/target/rockscript.jar server -ed

@@ -301,6 +301,9 @@
     <div class="logo">
       <img src="img/hand-white.png"/> RockScript
     </div>
+    <a class="menu-item menu-item" href="#scripts" onclick="showScripts()">
+      Scripts
+    </a>
     <a class="menu-item menu-item-last" href="#scriptExecutions" onclick="showScriptExecutions()">
       Script executions
     </a>
@@ -315,8 +318,65 @@
 
 <script language="JavaScript">
 
+var scripts;
+
+function showScripts() {
+  console.log("fetching scripts");
+  $.get(
+    'http://localhost:3652/scripts',
+    function(data){
+      scripts = data;
+      $('#content').html(createScripts(data));
+    })
+    .fail(function(jqXHR, textStatus, errorThrown){
+      $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
+    });
+};
+
+function createScripts(scripts) {
+  console.log('Showing script executions');
+  let html =
+      '<div>' +
+      '<h1>Scripts</h1>' +
+      '<table>' +
+      '<tr>' +
+      '<th>Name</th>' +
+      '</tr>';
+  scripts.forEach(function(script) {
+    html +=
+        '<tr class="row clickable" onclick="showScript(\''+script.name+'\')">' +
+        '<td>' + script.name + '</td>' +
+        '</tr>';
+  });
+  return html +=
+      '</table>' +
+      '</div>';
+}
+
+function showScript(scriptName) {
+  $('#content').html(createScript(scriptName));
+}
+
+function createScript(scriptName) {
+  var script = findScript(scriptName);
+  console.log('Showing script executions');
+  return '<div>' +
+      '<h1>Script '+scriptName+'</h1>' +
+      '<pre><code>'+script.text+'</code></pre>' +
+      '</div>';
+}
+
+function findScript(scriptName) {
+  if (scripts) {
+    for (var i=0; i<scripts.length; i++){
+      if (scripts[i].name===scriptName) {
+        return scripts[i];
+      }
+    }
+  }
+}
+
 function showScriptExecutions() {
-  console.log('Loading scripts');
   const scripts = $.get(
     'http://localhost:3652/scriptExecutions',
     function(data){
@@ -536,7 +596,7 @@ function applySyntaxColoringScripts() {
   });
 }
 
-showScriptExecution('se1');
+// showScriptExecution('se1');
 
 </script>
 
