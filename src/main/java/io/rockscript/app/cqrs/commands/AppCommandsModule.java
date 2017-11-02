@@ -1,6 +1,6 @@
 package io.rockscript.app.cqrs.commands;
 
-import io.rockscript.cqrs.CommandsModule;
+import io.rockscript.api.CommandsModule;
 import io.rockscript.gson.PolymorphicTypeAdapterFactory;
 
 public class AppCommandsModule implements CommandsModule {

@@ -1,7 +1,7 @@
 package io.rockscript.app.cqrs.commands;
 
 import io.rockscript.app.scriptrepo.ScriptRepository;
-import io.rockscript.cqrs.Command;
+import io.rockscript.api.Command;
 import io.rockscript.engine.Configuration;
 import io.rockscript.engine.Script;
 import io.rockscript.netty.router.BadRequestException;
@@ -11,7 +11,7 @@ public class SaveScriptCommand extends Command<CreateScriptResponse> {
   protected Script script;
 
   @Override
-  protected CreateScriptResponse execute(Configuration configuration) {
+  public CreateScriptResponse execute(Configuration configuration) {
     ScriptRepository scriptRepository = configuration.getObject(ScriptRepository.class);
     if (script==null) {
       if (script.getName()!=null) {

@@ -16,9 +16,9 @@
 package io.rockscript.app;
 
 import com.google.gson.reflect.TypeToken;
-import io.rockscript.app.cqrs.queries.ScriptExecutionQuery;
-import io.rockscript.app.cqrs.queries.ScriptExecutionsQuery;
-import io.rockscript.cqrs.commands.*;
+import io.rockscript.api.queries.ScriptExecutionQuery;
+import io.rockscript.api.queries.ScriptExecutionsQuery;
+import io.rockscript.api.commands.*;
 import io.rockscript.engine.Script;
 import io.rockscript.engine.impl.ContinuationReference;
 import io.rockscript.test.AbstractServerTest;
@@ -68,8 +68,9 @@ public class ServerTest extends AbstractServerTest {
 
     assertNotNull(scriptId);
 
-    EngineStartScriptExecutionResponse startScriptResponse = execute(new StartScriptExecutionCommand()
-        .scriptId(scriptId));
+    EngineStartScriptExecutionResponse startScriptResponse = new StartScriptExecutionCommand()
+        .scriptId(scriptId)
+        .execute(getConfiguration());
 
     String scriptExecutionId = startScriptResponse.getScriptExecutionId();
 
@@ -88,7 +89,6 @@ public class ServerTest extends AbstractServerTest {
       .execute()
       .assertStatusOk()
       .getBodyAs(EngineStartScriptExecutionResponse.class);
-
 
     List<ScriptExecutionsQuery.ScriptExecution> scriptExecutions = newGet("scriptExecutions")
       .execute()

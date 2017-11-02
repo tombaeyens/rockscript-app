@@ -1,6 +1,6 @@
 package io.rockscript.app.cqrs.commands;
 
-import io.rockscript.cqrs.Response;
+import io.rockscript.api.Response;
 
 public class CreateScriptResponse implements Response {
 

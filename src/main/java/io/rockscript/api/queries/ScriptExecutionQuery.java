@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.rockscript.app.cqrs.queries;
+package io.rockscript.api.queries;
 
 import io.rockscript.engine.Configuration;
 import io.rockscript.engine.impl.ExecutionEvent;

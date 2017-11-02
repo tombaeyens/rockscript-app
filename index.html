@@ -14,6 +14,7 @@
 
   <script src="js/highlight-9.12.0.js"></script>
   <link rel="stylesheet" href="css/highlight-github.css">
+  <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 
   <style>
 
@@ -206,17 +207,21 @@
       margin-bottom: 15px;
     }
 
-    .event-scroll-button {
-      width: 100px;
+    .red-button {
+      mon-width: 100px;
       min-height: 40px;
-      display: flow-root;
       background-color: #DD5E17;
       color: white;
       font-weight: 700;
-      margin: 5px 0;
+      margin: 5px;
       border: 0px;
       border-radius: 5px;
       padding: 10px;
+    }
+
+    .event-scroll-button {
+      display: flow-root;
+      margin: 5px 0;
     }
 
     code.eventdetails {
@@ -291,6 +296,27 @@
     .selected-script-line {
       background-color: #ffebdf;
     }
+
+    .editor-parent {
+      width: 100%;
+      height: 100%;
+    }
+
+    #editor {
+      height: 100%;
+      width: 100%;
+    }
+
+    .editor-text-row {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+    }
+
+    .issues {
+      min-width: 700px;
+    }
   </style>
 
 </head>
@@ -319,9 +345,11 @@
 <script language="JavaScript">
 
 var scripts;
+var script;
+var editor;
 
 function showScripts() {
-  console.log("fetching scripts");
+  console.log("Fetching scripts");
   $.get(
     'http://localhost:3652/scripts',
     function(data){
@@ -334,7 +362,7 @@ function showScripts() {
 };
 
 function createScripts(scripts) {
-  console.log('Showing script executions');
+  console.log('Creating scripts');
   let html =
       '<div>' +
       '<h1>Scripts</h1>' +
@@ -354,16 +382,35 @@ function createScripts(scripts) {
 }
 
 function showScript(scriptName) {
-  $('#content').html(createScript(scriptName));
+  var scriptHtml = createScript(scriptName);
+  $('#content').html(scriptHtml);
+  editor = ace.edit("editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/javascript");
+  editor.setShowPrintMargin(false);
+  // editor.renderer.setShowGutter(false);
+  editor.renderer.setPadding( 20 );
+  editor.resize();
 }
 
 function createScript(scriptName) {
-  var script = findScript(scriptName);
-  console.log('Showing script executions');
-  return '<div>' +
+  script = findScript(scriptName);
+  console.log('Creating script '+scriptName);
+  return '<div class="editor-parent">' +
       '<h1>Script '+scriptName+'</h1>' +
-      '<pre><code>'+script.text+'</code></pre>' +
-      '</div>';
+      '<div class="editor-text-row">' +
+        '<div class="editor-buttons">' +
+          '<button class="red-button" onclick="saveScript()">Save</button>' +
+          '<button class="red-button" onclick="deployScript()">Deploy</button>' +
+        '</div>' +
+        '<div id="editor">' + script.text + '</div>' +
+//        '<div class="issues">' +
+//          '<div class="issues-title">Issues</div>' +
+//          '<div class="issue-warning">Warning: Use of undeclared variable</div>' +
+//          '<div class="issue-error">Error: Variable not found</div>' +
+//        '</div>' +
+      '</div>' +
+    '</div>';
 }
 
 function findScript(scriptName) {
@@ -374,6 +421,18 @@ function findScript(scriptName) {
       }
     }
   }
+}
+
+function saveScript() {
+  console.log('saving script');
+  console.log('  name: '+script.name);
+  console.log('  text: '+editor.getValue());
+}
+
+function deployScript() {
+  console.log('deploying script');
+  console.log('  name: '+script.name);
+  console.log('  text: '+editor.getValue());
 }
 
 function showScriptExecutions() {
@@ -481,8 +540,8 @@ function createScriptExecution(scriptExecution) {
         '<div class="runtime-state">' +
           '<div class="event-scroll-buttons">' +
             '<div class="title">Scroll events</div>' +
-            '<button class="event-scroll-button" onclick="previousEvent()">Up</button>' +
-            '<button class="event-scroll-button" onclick="nextEvent()">Down</button>' +
+            '<button class="red-button event-scroll-button" onclick="previousEvent()">Up</button>' +
+            '<button class="red-button event-scroll-button" onclick="nextEvent()">Down</button>' +
           '</div>' +
           '<div class="title">Variables</div>' +
           '<div id="runtime-state-variables"></div>' +
@@ -596,6 +655,9 @@ function applySyntaxColoringScripts() {
   });
 }
 
+function createErrorMessage(msg) {
+  return '<code>'+msg+'</code>'
+}
 // showScriptExecution('se1');
 
 </script>

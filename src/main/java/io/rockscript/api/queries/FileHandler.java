@@ -1,4 +1,4 @@
-package io.rockscript.app.cqrs.queries;
+package io.rockscript.api.queries;
 
 import io.rockscript.netty.router.AsyncHttpRequest;
 import io.rockscript.netty.router.AsyncHttpResponse;
