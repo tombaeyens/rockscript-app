@@ -1,35 +1,36 @@
 package io.rockscript.app.scriptrepo;
 
 
+import io.rockscript.api.model.Script;
 import io.rockscript.engine.Configuration;
-import io.rockscript.engine.Script;
+import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.impl.ScriptStore;
 
 import java.util.*;
 
 public class ScriptRepository {
 
-  Map<String,Script> undeployedScripts = new HashMap<>();
+  Map<String,ScriptVersion> undeployedScripts = new HashMap<>();
   ScriptStore scriptStore;
 
   public ScriptRepository(Configuration configuration) {
     this.scriptStore = configuration.getScriptStore();
   }
 
-  public List<Script> getLatestScriptTexts() {
-    Map<String,Script> scriptsByName = new TreeMap<>(new Comparator<String>() {
+  public List<ScriptVersion> getLatestScriptTexts() {
+    Map<String,ScriptVersion> scriptsByName = new TreeMap<>(new Comparator<String>() {
       @Override
       public int compare(String o1, String o2) {
         return o1.compareTo(o2);
       }
     });
-    Map<String, List<Script>> scriptStoreScripts = scriptStore.getScripts();
-    if (scriptStoreScripts!=null) {
-      for (String scriptName: scriptStoreScripts.keySet()) {
-        List<Script> scriptVersions = scriptStoreScripts.get(scriptName);
+    List<Script> scripts = scriptStore.getScripts();
+    if (scripts!=null) {
+      for (Script script: scripts) {
+        List<ScriptVersion> scriptVersions = script.getScriptVersions();
         if (!scriptVersions.isEmpty()) {
-          Script latestVersion = scriptVersions.get(scriptVersions.size()-1);
-          scriptsByName.put(scriptName, latestVersion);
+          ScriptVersion latestVersion = scriptVersions.get(scriptVersions.size() - 1);
+          scriptsByName.put(script.getName(), latestVersion);
         }
       }
     }
@@ -38,9 +39,9 @@ public class ScriptRepository {
   }
 
   public void saveScriptText(String scriptName, String scriptText) {
-    Script script = new Script();
-    script.setName(scriptName);
-    script.setText(scriptText);
-    undeployedScripts.put(scriptName, script);
+    ScriptVersion scriptVersion = new ScriptVersion();
+    scriptVersion.setName(scriptName);
+    scriptVersion.setText(scriptText);
+    undeployedScripts.put(scriptName, scriptVersion);
   }
 }

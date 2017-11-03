@@ -7,7 +7,5 @@ public class AppCommandsModule implements CommandsModule {
 
   @Override
   public void registerCommands(PolymorphicTypeAdapterFactory polymorphicTypeAdapterFactory) {
-    polymorphicTypeAdapterFactory
-      .typeName(SaveScriptCommand.class, "createScript");
   }
 }

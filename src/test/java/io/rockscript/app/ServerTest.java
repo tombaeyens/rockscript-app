@@ -19,7 +19,7 @@ import com.google.gson.reflect.TypeToken;
 import io.rockscript.api.queries.ScriptExecutionQuery;
 import io.rockscript.api.queries.ScriptExecutionsQuery;
 import io.rockscript.api.commands.*;
-import io.rockscript.engine.Script;
+import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.impl.ContinuationReference;
 import io.rockscript.test.AbstractServerTest;
 import io.rockscript.test.SimpleImportProvider;
@@ -52,12 +52,12 @@ public class ServerTest extends AbstractServerTest {
       "script two",
       Io.getResourceAsString("testscripts/short-script.rs"));
 
-    List<Script> scripts = newGet("/scripts")
+    List<ScriptVersion> scriptVersions = newGet("/scripts")
       .execute()
       .assertStatusOk()
-      .getBodyAs(new TypeToken<List<Script>>() {}.getType());
+      .getBodyAs(new TypeToken<List<ScriptVersion>>() {}.getType());
 
-    assertEquals(2, scripts.size());
+    assertEquals(2, scriptVersions.size());
   }
 
   @Test
@@ -69,7 +69,7 @@ public class ServerTest extends AbstractServerTest {
     assertNotNull(scriptId);
 
     EngineStartScriptExecutionResponse startScriptResponse = new StartScriptExecutionCommand()
-        .scriptId(scriptId)
+        .scriptVersionId(scriptId)
         .execute(getConfiguration());
 
     String scriptExecutionId = startScriptResponse.getScriptExecutionId();
@@ -85,7 +85,7 @@ public class ServerTest extends AbstractServerTest {
 
     newPost("command")
       .bodyObject(new StartScriptExecutionCommand()
-        .scriptId(scriptId))
+        .scriptVersionId(scriptId))
       .execute()
       .assertStatusOk()
       .getBodyAs(EngineStartScriptExecutionResponse.class);
@@ -126,12 +126,13 @@ public class ServerTest extends AbstractServerTest {
 
   private String deployShortTestScript(String scriptName, String scriptText) {
     return newPost("command")
-        .bodyObject(new DeployScriptCommand()
+        .bodyObject(new SaveScriptVersionCommand()
           .scriptName(scriptName)
-          .scriptText(scriptText))
+          .scriptText(scriptText)
+          .activate())
         .execute()
         .assertStatusOk()
-        .getBodyAs(EngineDeployScriptResponse.class)
+        .getBodyAs(SaveScriptVersionResponse.class)
         .getId();
   }
 

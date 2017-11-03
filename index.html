@@ -462,7 +462,7 @@ function createScriptExecutions(scriptExecutions) {
     html +=
         '<tr class="row clickable" onclick="showScriptExecution(\''+scriptExecution.id+'\')">' +
           '<td>' + scriptExecution.id + '</td>' +
-          '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.scriptVersion + ')</span></td>' +
+          '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.script + ')</span></td>' +
           '<td>' + moment(scriptExecution.start).fromNow() + '</td>' +
           '<td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
         '</tr>';

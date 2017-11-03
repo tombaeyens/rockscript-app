@@ -17,7 +17,7 @@ package io.rockscript.api.queries;
 
 import com.google.gson.Gson;
 import io.rockscript.engine.Configuration;
-import io.rockscript.engine.Script;
+import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.impl.*;
 import io.rockscript.netty.router.*;
 
@@ -46,11 +46,11 @@ public class ScriptExecutionsQuery implements RequestHandler {
   }
 
   public static class ScriptExecutionList {
-    private final Map<String, Script> scriptsById;
+    private final Map<String, ScriptVersion> scriptVersionsById;
     Map<String,ScriptExecution> scriptExecutions = new LinkedHashMap<>();
 
-    public ScriptExecutionList(Map<String, Script> scriptsById) {
-      this.scriptsById = scriptsById;
+    public ScriptExecutionList(Map<String, ScriptVersion> scriptVersionsById) {
+      this.scriptVersionsById = scriptVersionsById;
     }
 
     public void processEvent(Event event) {
@@ -62,11 +62,11 @@ public class ScriptExecutionsQuery implements RequestHandler {
       if (executionEvent instanceof ScriptStartedEvent) {
         scriptExecution.start = executionEvent.getTime();
         ScriptStartedEvent scriptStartedEvent = (ScriptStartedEvent) executionEvent;
-        String scriptId = scriptStartedEvent.getScriptId();
-        Script script = scriptsById.get(scriptId);
-        scriptExecution.scriptName = script.getName();
-        scriptExecution.scriptShortName = getScriptShortName(script.getName());
-        scriptExecution.scriptVersion = script.getVersion();
+        String scriptVersionId = scriptStartedEvent.getScriptVersionId();
+        ScriptVersion scriptVersion = scriptVersionsById.get(scriptVersionId);
+        scriptExecution.scriptName = scriptVersion.getName();
+        scriptExecution.scriptShortName = getScriptShortName(scriptVersion.getName());
+        scriptExecution.scriptVersion = scriptVersion.getVersion();
 
       } else if (executionEvent instanceof ScriptEndedEvent) {
         scriptExecution.end = executionEvent.getTime();
@@ -86,15 +86,15 @@ public class ScriptExecutionsQuery implements RequestHandler {
     Configuration configuration = context.get(Configuration.class);
     Gson gson = configuration.getGson();
 
-    Map<String, Script> scriptsById = new HashMap<>();
+    Map<String, ScriptVersion> scriptVersionsById = new HashMap<>();
     configuration
       .getScriptStore()
       .getScripts()
-      .values()
-      .forEach(scriptList->scriptList
-        .forEach(script->scriptsById.put(script.getId(), script)));
+      .forEach(script->script
+        .getScriptVersions()
+        .forEach(scriptVersion->scriptVersionsById.put(scriptVersion.getId(), scriptVersion)));
 
-    ScriptExecutionList list = new ScriptExecutionList(scriptsById);
+    ScriptExecutionList list = new ScriptExecutionList(scriptVersionsById);
     EventStore eventStore = configuration.getEventStore();
     eventStore
       .getEvents()

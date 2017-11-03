@@ -50,11 +50,11 @@ public class ScriptExecutionQuery implements RequestHandler {
       .findEventsByScriptExecutionId(scriptExecutionId);
 
     ScriptStartedEvent startEvent = (ScriptStartedEvent) scriptExecution.events.get(0);
-    String scriptId = startEvent.getScriptId();
+    String scriptId = startEvent.getScriptVersionId();
     scriptExecution.scriptText = configuration
       .getScriptStore()
-      .findScriptAstById(scriptId)
-      .getScript()
+      .findScriptAstByScriptVersionId(scriptId)
+      .getScriptVersion()
       .getText();
 
     response
