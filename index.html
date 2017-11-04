@@ -46,7 +46,25 @@
       border-spacing: 0;
     }
 
-    tr.row td {
+    .invisible {
+      display: none;
+    }
+
+    .hidden {
+      visibility: hidden;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    tr.topline td {
       border: 0px solid #ddd;
       border-top-width: 1px;
     }
@@ -69,16 +87,12 @@
     }
 
     #main {
-      display: flex;
-      flex-direction: column;
       position: absolute;
       height: 100%;
       width: 100%;
     }
 
     .menu {
-      display: flex;
-      flex-direction: row;
       background-color: #2B7191;
       height: 70px;
       width: 100%;
@@ -122,8 +136,6 @@
     }
 
     .content-row {
-      display: flex;
-      flex-direction: row;
       height: 100%;
       width: 100%;
     }
@@ -148,8 +160,6 @@
     .script-execution-viewer {
       width: 100%;
       height: 100%;
-      display: flex;
-      flex-direction: row;
     }
 
     .script-execution-viewer .script {
@@ -168,8 +178,6 @@
     }
     .script-execution-viewer .runtime-state {
       width: calc(33% - 5px);
-      display: flex;
-      flex-direction: column;
       padding: 0 20px 0 20px;
       overflow-y: auto;
       align-items: left;
@@ -205,6 +213,7 @@
       display: flex;
       flex-direction: column;
       margin-bottom: 15px;
+      width: 100%;
     }
 
     .red-button {
@@ -222,6 +231,7 @@
     .event-scroll-button {
       display: flow-root;
       margin: 5px 0;
+      width: 90px;
     }
 
     code.eventdetails {
@@ -230,30 +240,12 @@
       display: block;
     }
 
-    .title {
+    .script-execution-viewer .title {
       font-weight: bold;
       color: #777;
       width: 100%;
       background-color: #f8f8f8;
       font-size: .8em;
-    }
-
-    .invisible {
-      display: none;
-    }
-
-    .hidden {
-      visibility: hidden;
-    }
-
-    .flexrow {
-      display: flex;
-      flex-direction: row;
-    }
-
-    .flexcolumn {
-      display: flex;
-      flex-direction: column;
     }
 
     #runtime-state-variables {
@@ -277,6 +269,11 @@
       color: #888;
       white-space: nowrap;
       overflow: hidden;
+    }
+
+    .variable-summary > code {
+      width: 100px;
+      display: block;
     }
 
     .variable-expander {
@@ -308,22 +305,33 @@
     }
 
     .editor-text-row {
-      display: flex;
-      flex-direction: row;
       width: 100%;
-      height: 100%;
+      height: calc(100% - 120px);
     }
 
-    .issues {
-      min-width: 700px;
+    .editor-save {
+      margin: 5px;
+      text-align: center;
+    }
+
+    .editor-errors {
+      height: 120px;
+    }
+
+    .editor-errors > .title {
+      text-weight: bold;
+    }
+
+    .editor-errors > .error {
+      color: red;
     }
   </style>
 
 </head>
 <body>
 
-<div id="main">
-  <div class="menu">
+<div id="main" class="column">
+  <div class="row menu">
     <div class="logo">
       <img src="img/hand-white.png"/> RockScript
     </div>
@@ -334,7 +342,7 @@
       Script executions
     </a>
   </div>
-  <div class="content-row">
+  <div class="row content-row">
     <div class="content-padding"> </div>
     <div id="content">
     </div>
@@ -372,7 +380,7 @@ function createScripts(scripts) {
       '</tr>';
   scripts.forEach(function(script) {
     html +=
-        '<tr class="row clickable" onclick="showScript(\''+script.name+'\')">' +
+        '<tr class="topline clickable" onclick="showScript(\''+script.name+'\')">' +
         '<td>' + script.name + '</td>' +
         '</tr>';
   });
@@ -398,17 +406,16 @@ function createScript(scriptName) {
   console.log('Creating script '+scriptName);
   return '<div class="editor-parent">' +
       '<h1>Script '+scriptName+'</h1>' +
-      '<div class="editor-text-row">' +
-        '<div class="editor-buttons">' +
-          '<button class="red-button" onclick="saveScript()">Save</button>' +
+      '<div class="row editor-text-row">' +
+        '<div id="editor">' + script.text + '</div>' +
+        '<div class="editor-buttons column">' +
+          '<a class="editor-save" onclick="saveScript()" href="#save">Save</a>' +
           '<button class="red-button" onclick="deployScript()">Deploy</button>' +
         '</div>' +
-        '<div id="editor">' + script.text + '</div>' +
-//        '<div class="issues">' +
-//          '<div class="issues-title">Issues</div>' +
-//          '<div class="issue-warning">Warning: Use of undeclared variable</div>' +
-//          '<div class="issue-error">Error: Variable not found</div>' +
-//        '</div>' +
+      '</div>' +
+      '<div class="editor-errors">' +
+      '  <div class="title">Errors</div>' +
+      '  <div class="message">Validation in progress...</div>' +
       '</div>' +
     '</div>';
 }
@@ -460,7 +467,7 @@ function createScriptExecutions(scriptExecutions) {
         '</tr>';
   scriptExecutions.forEach(function(scriptExecution) {
     html +=
-        '<tr class="row clickable" onclick="showScriptExecution(\''+scriptExecution.id+'\')">' +
+        '<tr class="topline clickable" onclick="showScriptExecution(\''+scriptExecution.id+'\')">' +
           '<td>' + scriptExecution.id + '</td>' +
           '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.script + ')</span></td>' +
           '<td>' + moment(scriptExecution.start).fromNow() + '</td>' +
@@ -492,9 +499,9 @@ function createScriptExecution(scriptExecution) {
   let html =
     '<div class="fullheight">' +
       '<h1>Script Execution '+scriptExecution.id+'</h1>' +
-      '<div class="script-execution-viewer">' +
+      '<div class="row script-execution-viewer">' +
         '<pre id="scriptpre" class="script"><code>'+addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
-        '<div id="events" class="events">' +
+        '<div id="events" class="events column">' +
           '<div class="title">Events</div>';
   scriptExecution.runtimeState = {
     variables: {},
@@ -537,7 +544,7 @@ function createScriptExecution(scriptExecution) {
   });
   return html +
         '</div>' +
-        '<div class="runtime-state">' +
+        '<div class="runtime-state column">' +
           '<div class="event-scroll-buttons">' +
             '<div class="title">Scroll events</div>' +
             '<button class="red-button event-scroll-button" onclick="previousEvent()">Up</button>' +
@@ -589,7 +596,7 @@ function highlightEvent(index) {
 }
 
 function variablesHtml(runtimeVariables) {
-  var html = '<div class="variables flexcolumn">';
+  var html = '<div class="variables column">';
   for (var variableName in runtimeVariables) {
     if (runtimeVariables.hasOwnProperty(variableName)) {
       html +=
@@ -607,7 +614,7 @@ function variablesHtml(runtimeVariables) {
 }
 
 function continuationsHtml(continuations) {
-  var html = '<div class="continuations flexcolumn">';
+  var html = '<div class="continuations column">';
   for (var executionId in continuations) {
     if (continuations.hasOwnProperty(executionId)) {
       var a = continuations[executionId];
