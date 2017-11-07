@@ -162,23 +162,28 @@
       height: 100%;
     }
 
-    .script-execution-viewer .script {
-      width: calc(33% - 5px);
-      margin:0;
-      padding: 7px;
-      display: flex;
-      overflow-y: auto;
+    .events-help {
+      padding: 0 0 10px 0;
+      font-size: .7em;
+      color: #555;
+      text-align: right;
     }
+
     .script-execution-viewer .events {
       width: calc(33% - 5px);
       display: flex;
       flex-direction: column;
-      padding: 0 20px 0 20px;
       overflow-y: scroll;
+    }
+    .script-execution-viewer .script {
+      width: calc(33% - 5px);
+      padding: 7px;
+      margin: 0 20px 0 20px;
+      display: flex;
+      overflow-y: auto;
     }
     .script-execution-viewer .runtime-state {
       width: calc(33% - 5px);
-      padding: 0 20px 0 20px;
       overflow-y: auto;
       align-items: left;
     }
@@ -203,17 +208,10 @@
       background-color: #fff6f1;
     }
 
-    .event-down {
+    .expander {
       float:right;
       height: 16px;
       vertical-align: bottom;
-    }
-
-    .event-scroll-buttons {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 15px;
-      width: 100%;
     }
 
     .red-button {
@@ -226,12 +224,6 @@
       border: 0px;
       border-radius: 5px;
       padding: 10px;
-    }
-
-    .event-scroll-button {
-      display: flow-root;
-      margin: 5px 0;
-      width: 90px;
     }
 
     code.eventdetails {
@@ -469,7 +461,7 @@ function createScriptExecutions(scriptExecutions) {
     html +=
         '<tr class="topline clickable" onclick="showScriptExecution(\''+scriptExecution.id+'\')">' +
           '<td>' + scriptExecution.id + '</td>' +
-          '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.script + ')</span></td>' +
+          '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.scriptVersion + ')</span></td>' +
           '<td>' + moment(scriptExecution.start).fromNow() + '</td>' +
           '<td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
         '</tr>';
@@ -488,6 +480,18 @@ function showScriptExecution(scriptExecutionId) {
       $('#events')[0].scriptExecution = data;
       applySyntaxColoringScripts();
       highlightEvent(0);
+      $('body').off();
+      $('body').keydown(function(e){
+        if ($('events')) {
+          if (e.keyCode=='38') {
+            previousEvent();
+          } else if (e.keyCode=='40') {
+            nextEvent();
+          } else if (e.keyCode=='37' || e.keyCode=='39') {
+            toggleCurrentExpander();
+          }
+        }
+      });
     })
     .fail(function(jqXHR, textStatus, errorThrown){
       console.log(textStatus+': '+errorThrown);
@@ -500,9 +504,9 @@ function createScriptExecution(scriptExecution) {
     '<div class="fullheight">' +
       '<h1>Script Execution '+scriptExecution.id+'</h1>' +
       '<div class="row script-execution-viewer">' +
-        '<pre id="scriptpre" class="script"><code>'+addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
         '<div id="events" class="events column">' +
-          '<div class="title">Events</div>';
+          '<div class="title">Events</div>' +
+          '<div class="events-help">Use &#x25B2; and &#x25BC; to scroll through the events</div>';
   scriptExecution.runtimeState = {
     variables: {},
     continuations: {}
@@ -534,7 +538,9 @@ function createScriptExecution(scriptExecution) {
     } else if (event.activityEnd) {
       let e = event.activityEnd;
       let a = activityData[e.executionId];
-      html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value <pre><code>' /* + JSON.stringify(e.result) */ + '</code></pre></div>';
+      html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value ' +
+          expander('event-'+i) +
+          '<pre class="invisible"><code class="eventdetails">'+JSON.stringify(e.result, null, 2)+ '</code></pre></div>';
       delete scriptExecution.runtimeState.continuations[e.executionId];
     } else if (event.scriptEnded) {
       html += '<div>Script ended</div>';
@@ -544,12 +550,8 @@ function createScriptExecution(scriptExecution) {
   });
   return html +
         '</div>' +
+        '<pre id="scriptpre" class="script"><code>'+addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
         '<div class="runtime-state column">' +
-          '<div class="event-scroll-buttons">' +
-            '<div class="title">Scroll events</div>' +
-            '<button class="red-button event-scroll-button" onclick="previousEvent()">Up</button>' +
-            '<button class="red-button event-scroll-button" onclick="nextEvent()">Down</button>' +
-          '</div>' +
           '<div class="title">Variables</div>' +
           '<div id="runtime-state-variables"></div>' +
           '<div class="title">Activity continuations</div>' +
@@ -564,7 +566,11 @@ function addScriptLineSpans(scriptText) {
 }
 
 function expander(id) {
-  return '<a onclick="$(\'#'+id+' pre\').toggleClass(\'invisible\');"><img class="event-down" src="img/down.png"/></a>';
+  return '<a onclick="toggleCurrentExpander()"><img class="expander" src="img/down.png"/></a>';
+}
+
+function toggleCurrentExpander() {
+  $('#event-'+getScriptExecution().eventIndex+' pre').toggleClass('invisible');
 }
 
 function previousEvent() {
@@ -601,7 +607,7 @@ function variablesHtml(runtimeVariables) {
     if (runtimeVariables.hasOwnProperty(variableName)) {
       html +=
           '<div class="variable-name">' +
-            '<a class="variable-expander" onclick="toggleVariableVisibility(\''+variableName+'\');"><img class="event-down" src="img/down.png"/></a>' +
+            '<a class="variable-expander" onclick="toggleVariableVisibility(\''+variableName+'\');"><img class="expander" src="img/down.png"/></a>' +
             '<div>' + variableName + '</div>' +
           '</div>'+
           '<div id="variable-'+variableName+'-summary" class="variable-summary"><code>' + JSON.stringify(runtimeVariables[variableName]) + '</code></div>' +
