@@ -16,8 +16,8 @@
   <link rel="stylesheet" href="css/highlight-github.css">
   <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 
+  <!-- Common style -->
   <style>
-
     body {
       margin: 0;
       font-family: "Open Sans";
@@ -85,7 +85,23 @@
     td {
       padding: 10px;
     }
+  </style>
 
+  <!------------------------------->
+  <!-- App           -------------->
+  <!------------------------------->
+  <script language="JavaScript">
+    var appView = {
+      scriptsClicked: function() {
+        scriptsView.show();
+      },
+      scriptExecutionsClicked: function() {
+        scriptExecutionsView.show();
+      },
+    };
+  </script>
+  <!-- App component style -->
+  <style>
     #main {
       position: absolute;
       height: 100%;
@@ -149,11 +165,419 @@
       height: calc(100% - 90px);
       width: 100%;
     }
+  </style>
 
+  <!------------------------------->
+  <!-- Scripts view           ----->
+  <!------------------------------->
+  <script language="JavaScript">
+
+    var scriptsView = {
+      show: function() {
+        $.get(
+            'http://localhost:3652/scripts',
+            function(data) {
+              scriptsView.showScripts(data);
+            })
+            .fail(function(jqXHR, textStatus, errorThrown){
+              errorView.showXHRError(jqXHR, textStatus, errorThrown);
+            });
+      },
+
+      showScripts: function(scripts) {
+        $('#content').html(scriptsView.createScriptsHtml(scripts));
+      },
+
+      createScriptsHtml: function(scripts) {
+        // cache the scripts for the script view
+        scriptsView.scripts = scripts;
+        return '' + // Q: how to get rid of this
+          '<div>' +
+          '  <h1>Scripts</h1>' +
+          '  <table>' +
+          '    <tr>' +
+          '      <th>Name</th>' +
+          '    </tr>'+
+          scripts.map(function(script) {
+            return '<tr class="topline clickable" onclick="scriptsView.scriptClicked(\''+script.name+'\')">' +
+                '  <td>' + script.name + '</td>' +
+                '</tr>';
+          }).join('') +
+          '  </table>' +
+          '</div>';
+      },
+
+      scriptClicked: function(scriptName) {
+        var script = scriptsView.findScriptByName(scriptName);
+        scriptEditorView.show(script);
+      },
+
+      findScriptByName: function(scriptName) {
+        if (this.scripts) {
+          for (var i = 0; i < this.scripts.length; i++) {
+            if (this.scripts[i].name === scriptName) {
+              return this.scripts[i];
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+
+  <!------------------------------->
+  <!-- Script editor          ----->
+  <!------------------------------->
+  <script language="JavaScript">
+
+    var scriptEditorView = {
+
+      show: function(script) {
+        $('#content').html(scriptEditorView.scriptHtml(script));
+        var aceEditor = ace.edit("editor");
+        aceEditor.setTheme("ace/theme/monokai");
+        aceEditor.getSession().setMode("ace/mode/javascript");
+        aceEditor.setShowPrintMargin(false);
+        // editor.renderer.setShowGutter(false);
+        aceEditor.renderer.setPadding( 20 );
+        aceEditor.resize();
+        scriptEditorView.aceEditor = aceEditor;
+      },
+
+      scriptHtml: function(script) {
+        scriptEditorView.script = script;
+        return ''+
+          '<div class="editor-parent">' +
+          '  <h1>Script '+script.name+' ('+script.id+')</h1>' +
+          '  <div class="row editor-text-row">' +
+          '    <div id="editor">' + script.text + '</div>' +
+          '    <div class="editor-buttons column">' +
+          '      <a class="editor-save" onclick="scriptEditorView.saveScriptClicked()" href="#save">Save</a>' +
+          '      <button class="red-button" onclick="scriptEditorView.deployScriptClicked()">Deploy</button>' +
+          '    </div>' +
+          '  </div>' +
+          '  <div class="editor-errors">' +
+          '    <div class="title">Errors</div>' +
+          '    <div class="message">Validation in progress...</div>' +
+          '  </div>' +
+          '</div>';
+      },
+
+      saveScriptClicked: function() {
+        console.log('saving script');
+        console.log('  id: '+scriptEditorView.script.id);
+        console.log('  scriptId: '+scriptEditorView.script.scriptId);
+        console.log('  name: '+scriptEditorView.script.name);
+        console.log('  text: '+scriptEditorView.aceEditor.getValue());
+      },
+
+      deployScriptClicked: function() {
+        console.log('deploying script');
+      }
+    };
+  </script>
+  <style>
+    .editor-parent {
+      width: 100%;
+      height: 100%;
+    }
+
+    #editor {
+      height: 100%;
+      width: 100%;
+    }
+
+    .editor-text-row {
+      width: 100%;
+      height: calc(100% - 120px);
+    }
+
+    .editor-save {
+      margin: 5px;
+      text-align: center;
+    }
+
+    .editor-errors {
+      height: 120px;
+    }
+
+    .editor-errors > .title {
+      text-weight: bold;
+    }
+
+    .editor-errors > .error {
+      color: red;
+    }
+  </style>
+
+
+  <!------------------------------->
+  <!-- Script executions list ----->
+  <!------------------------------->
+  <script language="JavaScript">
+
+    var scriptExecutionsView = {
+
+      show: function() {
+        $.get(
+          'http://localhost:3652/scriptExecutions',
+          function(data){
+            scriptExecutionsView.showScriptExecutions(data);
+          })
+          .fail(function(jqXHR, textStatus, errorThrown){
+            errorView.showXHRError(jqXHR, textStatus, errorThrown);
+          });
+      },
+
+      showScriptExecutions: function(scriptExecutions) {
+        $('#content').html(scriptExecutionsView.scriptExecutionsHtml(scriptExecutions));
+      },
+
+      scriptExecutionsHtml: function(scriptExecutions) {
+        return '' +
+          '<div>' +
+          '  <h1>Script Executions</h1>' +
+          '  <table>' +
+          '    <tr>' +
+          '      <th>Id</th>' +
+          '      <th>Script</th>' +
+          '      <th>Started</th>' +
+          '      <th>Status</th>' +
+          '    </tr>' +
+          scriptExecutions
+            .map(function(scriptExecution) {
+              return '' +
+                '<tr class="topline clickable" onclick="scriptExecutionsView.scriptExecutionClicked(\''+scriptExecution.id+'\')">' +
+                '  <td>' + scriptExecution.id + '</td>' +
+                '  <td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.scriptVersion + ')</span></td>' +
+                '  <td>' + moment(scriptExecution.start).fromNow() + '</td>' +
+                '  <td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
+                '</tr>';})
+            .join('') +
+          '  </table>' +
+          '</div>';
+      },
+
+      scriptExecutionClicked: function(scriptExecutionId) {
+        scriptExecutionInspectorView.show(scriptExecutionId);
+      }
+    };
+
+
+  </script>
+  <style>
     .script-version {
       color: #999;
     }
+  </style>
 
+
+  <!------------------------------------>
+  <!-- Script executions inspector ----->
+  <!------------------------------------>
+  <script language="JavaScript">
+
+    var scriptExecutionInspectorView = {
+      show: function(scriptExecutionId) {
+        $.get(
+          'http://localhost:3652/scriptExecution/'+scriptExecutionId,
+          function(data){
+            scriptExecutionInspectorView.showScriptExecutionInspector(data);
+          })
+          .fail(function(jqXHR, textStatus, errorThrown){
+            console.log(textStatus+': '+errorThrown);
+            $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
+          });
+      },
+
+      showScriptExecutionInspector: function(scriptExecution) {
+        $('#content').html(scriptExecutionInspectorView.createScriptExecutionHtml(scriptExecution));
+        scriptExecutionInspectorView.applySyntaxColoringScripts();
+        scriptExecutionInspectorView.highlightEvent(0);
+        $('body').off();
+        $('body').keydown(function(e){
+          if ($('events')) {
+            if (e.keyCode=='38') {
+              scriptExecutionInspectorView.arrowUpPressed();
+            } else if (e.keyCode=='40') {
+              scriptExecutionInspectorView.arrowDownPressed();
+            } else if (e.keyCode=='37' || e.keyCode=='39') {
+              scriptExecutionInspectorView.expanderClicked();
+            }
+          }
+        });
+      },
+
+      createScriptExecutionHtml: function(scriptExecution) {
+        scriptExecutionInspectorView.scriptExecution = scriptExecution;
+        let html =
+          '<div class="fullheight">' +
+          '<h1>Script Execution '+scriptExecution.id+'</h1>' +
+          '<div class="row script-execution-viewer">' +
+          '<div id="events" class="events column">' +
+          '<div class="title">Events</div>' +
+          '<div class="events-help">Use &#x25B2; and &#x25BC; to scroll through the events</div>';
+        scriptExecution.runtimeState = {
+          variables: {},
+          continuations: {}
+        };
+        var activityData = {};
+        scriptExecution.events.forEach(function (event, i){
+          html += '<div id="event-'+i+'" class="event">';
+          if (event.scriptStarted) {
+            html += '<div>Script started</div>';
+          } else if (event.variableCreated) {
+            let e = event.variableCreated;
+            html += '<div><code>' + e.variableName + '</code> was created' +scriptExecutionInspectorView.expanderHtml('event-'+i)+
+                '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.value, null, 2) + '</code></pre></div>';
+            scriptExecution.runtimeState.variables[e.variableName] = e.value;
+          } else if (event.activityStarted) {
+            let e = event.activityStarted;
+            html += '<div><code>' + e.serviceName + ' ' +e.activityName + ' ' + e.executionId +'</code> was started ' +
+                scriptExecutionInspectorView.expanderHtml('event-'+i) +
+                '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.args, null, 2) + '</code></pre></div>';
+            activityData[e.executionId] = {
+              activityName: e.activityName,
+              serviceName: e.serviceName
+            };
+          } else if (event.activityWaiting) {
+            let e = event.activityWaiting;
+            let a = activityData[e.executionId];
+            html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> waiting for callback</div>';
+            scriptExecution.runtimeState.continuations[e.executionId] = { activityName: a.activityName, serviceName: a.serviceName };
+          } else if (event.activityEnd) {
+            let e = event.activityEnd;
+            let a = activityData[e.executionId];
+            html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value ' +
+                scriptExecutionInspectorView.expanderHtml('event-'+i) +
+                '<pre class="invisible"><code class="eventdetails">'+JSON.stringify(e.result, null, 2)+ '</code></pre></div>';
+            delete scriptExecution.runtimeState.continuations[e.executionId];
+          } else if (event.scriptEnded) {
+            html += '<div>Script ended</div>';
+          }
+          html += '</div>';
+          event.runtimeState = $.extend(true, {}, scriptExecution.runtimeState);
+        });
+        return html +
+          '</div>' +
+          '<pre id="scriptpre" class="script"><code>'+scriptExecutionInspectorView.addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
+          '<div class="runtime-state column">' +
+          '<div class="title">Variables</div>' +
+          '<div id="runtime-state-variables"></div>' +
+          '<div class="title">Activity continuations</div>' +
+          '<div id="runtime-state-continuations"></div>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
+      },
+
+      addScriptLineSpans: function(scriptText) {
+        return '<span class="scriptline">'+scriptText.split('\n').join('</span>\n<span class="scriptline">')+'</span>';
+      },
+
+      expanderHtml: function(id) {
+        return '<a onclick="scriptExecutionInspectorView.expanderClicked()"><img class="expander" src="img/down.png"/></a>';
+      },
+
+      expanderClicked: function() {
+        $('#event-'+scriptExecutionInspectorView.scriptExecution.eventIndex+' pre').toggleClass('invisible');
+      },
+
+      arrowUpPressed: function() {
+        scriptExecutionInspectorView.highlightEvent(scriptExecutionInspectorView.scriptExecution.eventIndex-1);
+      },
+
+      arrowDownPressed: function() {
+        scriptExecutionInspectorView.highlightEvent(scriptExecutionInspectorView.scriptExecution.eventIndex+1);
+      },
+
+      highlightEvent: function(index) {
+        let scriptExecution = scriptExecutionInspectorView.scriptExecution;
+        if (index>=0 && index<scriptExecution.events.length) {
+          let oldIndex = scriptExecution.eventIndex;
+          if (oldIndex || oldIndex==0) {
+            $('#event-'+oldIndex).removeClass('selectedEvent');
+            scriptExecutionInspectorView.highlightScriptLine(scriptExecution, oldIndex, false);
+          }
+          $('#event-'+index).addClass('selectedEvent');
+          scriptExecutionInspectorView.highlightScriptLine(scriptExecution, index, true);
+          scriptExecution.eventIndex = index;
+
+          $('#runtime-state-variables')
+              .html(scriptExecutionInspectorView.variablesHtml(scriptExecution.events[index].runtimeState.variables));
+
+          $('#runtime-state-continuations')
+              .html(scriptExecutionInspectorView.continuationsHtml(scriptExecution.events[index].runtimeState.continuations));
+        }
+      },
+
+      variablesHtml: function(runtimeVariables) {
+        var html = '<div class="variables column">';
+        for (var variableName in runtimeVariables) {
+          if (runtimeVariables.hasOwnProperty(variableName)) {
+            html +=
+                '<div class="variable-name">' +
+                '<a class="variable-expander" onclick="scriptExecutionInspectorView.toggleVariableVisibility(\''+variableName+'\');"><img class="expander" src="img/down.png"/></a>' +
+                '<div>' + variableName + '</div>' +
+                '</div>'+
+                '<div id="variable-'+variableName+'-summary" class="variable-summary"><code>' + JSON.stringify(runtimeVariables[variableName]) + '</code></div>' +
+                '<div id="variable-'+variableName+'-details" class="variable-details invisible">' +
+                '<pre>' + JSON.stringify(runtimeVariables[variableName], null, 2) + '</pre>' +
+                '</div>';
+          }
+        }
+        return html + '</div>';
+      },
+
+      continuationsHtml: function(continuations) {
+        var html = '<div class="continuations column">';
+        for (var executionId in continuations) {
+          if (continuations.hasOwnProperty(executionId)) {
+            var a = continuations[executionId];
+            html +=
+                '<div class="continuation">' +
+                a.serviceName+' '+a.activityName+' '+executionId +
+                '</div>';
+          }
+        }
+        return html + '</div>';
+      },
+
+      toggleVariableVisibility: function(variableName) {
+        $('#variable-'+variableName+'-details').toggleClass('invisible');
+        $('#variable-'+variableName+'-summary').toggleClass('invisible');
+      },
+
+      highlightScriptLine: function(scriptExecution, eventIndex, highlight) {
+        var event = scriptExecution.events[eventIndex];
+        var line = scriptExecutionInspectorView.getLine(event);
+        if (line) {
+          var lineSpan = $('span.scriptline').eq(line-1);
+          if (highlight) {
+            lineSpan.addClass('selected-script-line');
+          } else {
+            lineSpan.removeClass('selected-script-line');
+          }
+        }
+      },
+
+      getLine: function(event) {
+        for(var eventType in event) {
+          return event[eventType].line;
+        }
+        return null;
+      },
+
+      applySyntaxColoringScripts: function() {
+        $('pre.script').each(function(i, block) {
+          hljs.highlightBlock(block);
+        });
+      }
+    };
+
+
+  </script>
+  <style>
     pre.script {
     }
 
@@ -285,39 +709,21 @@
     .selected-script-line {
       background-color: #ffebdf;
     }
-
-    .editor-parent {
-      width: 100%;
-      height: 100%;
-    }
-
-    #editor {
-      height: 100%;
-      width: 100%;
-    }
-
-    .editor-text-row {
-      width: 100%;
-      height: calc(100% - 120px);
-    }
-
-    .editor-save {
-      margin: 5px;
-      text-align: center;
-    }
-
-    .editor-errors {
-      height: 120px;
-    }
-
-    .editor-errors > .title {
-      text-weight: bold;
-    }
-
-    .editor-errors > .error {
-      color: red;
-    }
   </style>
+
+  <!------------------------------->
+  <!-- Error view             ----->
+  <!------------------------------->
+  <script language="JavaScript">
+    var errorView = {
+      showXHRError: function(jqXHR, textStatus, errorThrown) {
+        $('#content').html(errorView.createErrorMessage(textStatus+': '+errorThrown));
+      },
+      createErrorMessage: function(msg) {
+        return '<code>' + msg + '</code>';
+      }
+    };
+  </script>
 
 </head>
 <body>
@@ -327,10 +733,10 @@
     <div class="logo">
       <img src="img/hand-white.png"/> RockScript
     </div>
-    <a class="menu-item menu-item" href="#scripts" onclick="showScripts()">
+    <a id="show-scripts-menu-item" class="menu-item menu-item" href="#scripts" onclick="appView.scriptsClicked()">
       Scripts
     </a>
-    <a class="menu-item menu-item-last" href="#scriptExecutions" onclick="showScriptExecutions()">
+    <a id="show-scripts-executions-menu-item" class="menu-item menu-item-last" href="#scriptExecutions" onclick="appView.scriptExecutionsClicked()">
       Script executions
     </a>
   </div>
@@ -341,340 +747,6 @@
     <div class="content-padding"> </div>
   </div>
 </div>
-
-<script language="JavaScript">
-
-var scripts;
-var script;
-var editor;
-
-function showScripts() {
-  console.log("Fetching scripts");
-  $.get(
-    'http://localhost:3652/scripts',
-    function(data){
-      scripts = data;
-      $('#content').html(createScripts(data));
-    })
-    .fail(function(jqXHR, textStatus, errorThrown){
-      $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
-    });
-};
-
-function createScripts(scripts) {
-  console.log('Creating scripts');
-  let html =
-      '<div>' +
-      '<h1>Scripts</h1>' +
-      '<table>' +
-      '<tr>' +
-      '<th>Name</th>' +
-      '</tr>';
-  scripts.forEach(function(script) {
-    html +=
-        '<tr class="topline clickable" onclick="showScript(\''+script.name+'\')">' +
-        '<td>' + script.name + '</td>' +
-        '</tr>';
-  });
-  return html +=
-      '</table>' +
-      '</div>';
-}
-
-function showScript(scriptName) {
-  var scriptHtml = createScript(scriptName);
-  $('#content').html(scriptHtml);
-  editor = ace.edit("editor");
-  editor.setTheme("ace/theme/monokai");
-  editor.getSession().setMode("ace/mode/javascript");
-  editor.setShowPrintMargin(false);
-  // editor.renderer.setShowGutter(false);
-  editor.renderer.setPadding( 20 );
-  editor.resize();
-}
-
-function createScript(scriptName) {
-  script = findScript(scriptName);
-  console.log('Creating script '+scriptName);
-  return '<div class="editor-parent">' +
-      '<h1>Script '+scriptName+'</h1>' +
-      '<div class="row editor-text-row">' +
-        '<div id="editor">' + script.text + '</div>' +
-        '<div class="editor-buttons column">' +
-          '<a class="editor-save" onclick="saveScript()" href="#save">Save</a>' +
-          '<button class="red-button" onclick="deployScript()">Deploy</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="editor-errors">' +
-      '  <div class="title">Errors</div>' +
-      '  <div class="message">Validation in progress...</div>' +
-      '</div>' +
-    '</div>';
-}
-
-function findScript(scriptName) {
-  if (scripts) {
-    for (var i=0; i<scripts.length; i++){
-      if (scripts[i].name===scriptName) {
-        return scripts[i];
-      }
-    }
-  }
-}
-
-function saveScript() {
-  console.log('saving script');
-  console.log('  name: '+script.name);
-  console.log('  text: '+editor.getValue());
-}
-
-function deployScript() {
-  console.log('deploying script');
-  console.log('  name: '+script.name);
-  console.log('  text: '+editor.getValue());
-}
-
-function showScriptExecutions() {
-  const scripts = $.get(
-    'http://localhost:3652/scriptExecutions',
-    function(data){
-      $('#content').html(createScriptExecutions(data));
-    })
-    .fail(function(jqXHR, textStatus, errorThrown){
-      $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
-    });
-};
-
-function createScriptExecutions(scriptExecutions) {
-  console.log('Showing script executions');
-  let html =
-    '<div>' +
-      '<h1>Script Executions</h1>' +
-      '<table>' +
-        '<tr>' +
-          '<th>Id</th>' +
-          '<th>Script</th>' +
-          '<th>Started</th>' +
-          '<th>Status</th>' +
-        '</tr>';
-  scriptExecutions.forEach(function(scriptExecution) {
-    html +=
-        '<tr class="topline clickable" onclick="showScriptExecution(\''+scriptExecution.id+'\')">' +
-          '<td>' + scriptExecution.id + '</td>' +
-          '<td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.scriptVersion + ')</span></td>' +
-          '<td>' + moment(scriptExecution.start).fromNow() + '</td>' +
-          '<td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
-        '</tr>';
-  });
-  return html +=
-      '</table>' +
-    '</div>';
-}
-
-function showScriptExecution(scriptExecutionId) {
-  console.log('Showing script execution '+scriptExecutionId);
-  $.get(
-    'http://localhost:3652/scriptExecution/'+scriptExecutionId,
-    function(data){
-      $('#content').html(createScriptExecution(data));
-      $('#events')[0].scriptExecution = data;
-      applySyntaxColoringScripts();
-      highlightEvent(0);
-      $('body').off();
-      $('body').keydown(function(e){
-        if ($('events')) {
-          if (e.keyCode=='38') {
-            previousEvent();
-          } else if (e.keyCode=='40') {
-            nextEvent();
-          } else if (e.keyCode=='37' || e.keyCode=='39') {
-            toggleCurrentExpander();
-          }
-        }
-      });
-    })
-    .fail(function(jqXHR, textStatus, errorThrown){
-      console.log(textStatus+': '+errorThrown);
-      $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
-    });
-}
-
-function createScriptExecution(scriptExecution) {
-  let html =
-    '<div class="fullheight">' +
-      '<h1>Script Execution '+scriptExecution.id+'</h1>' +
-      '<div class="row script-execution-viewer">' +
-        '<div id="events" class="events column">' +
-          '<div class="title">Events</div>' +
-          '<div class="events-help">Use &#x25B2; and &#x25BC; to scroll through the events</div>';
-  scriptExecution.runtimeState = {
-    variables: {},
-    continuations: {}
-  };
-  var activityData = {};
-  scriptExecution.events.forEach(function (event, i){
-    html += '<div id="event-'+i+'" class="event">';
-    if (event.scriptStarted) {
-      html += '<div>Script started</div>';
-    } else if (event.variableCreated) {
-      let e = event.variableCreated;
-      html += '<div><code>' + e.variableName + '</code> was created' +expander('event-'+i)+
-          '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.value, null, 2) + '</code></pre></div>';
-      scriptExecution.runtimeState.variables[e.variableName] = e.value;
-    } else if (event.activityStarted) {
-      let e = event.activityStarted;
-      html += '<div><code>' + e.serviceName + ' ' +e.activityName + ' ' + e.executionId +'</code> was started ' +
-          expander('event-'+i) +
-          '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.args, null, 2) + '</code></pre></div>';
-      activityData[e.executionId] = {
-        activityName: e.activityName,
-        serviceName: e.serviceName
-      };
-    } else if (event.activityWaiting) {
-      let e = event.activityWaiting;
-      let a = activityData[e.executionId];
-      html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> waiting for callback</div>';
-      scriptExecution.runtimeState.continuations[e.executionId] = { activityName: a.activityName, serviceName: a.serviceName };
-    } else if (event.activityEnd) {
-      let e = event.activityEnd;
-      let a = activityData[e.executionId];
-      html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value ' +
-          expander('event-'+i) +
-          '<pre class="invisible"><code class="eventdetails">'+JSON.stringify(e.result, null, 2)+ '</code></pre></div>';
-      delete scriptExecution.runtimeState.continuations[e.executionId];
-    } else if (event.scriptEnded) {
-      html += '<div>Script ended</div>';
-    }
-    html += '</div>';
-    event.runtimeState = $.extend(true, {}, scriptExecution.runtimeState);
-  });
-  return html +
-        '</div>' +
-        '<pre id="scriptpre" class="script"><code>'+addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
-        '<div class="runtime-state column">' +
-          '<div class="title">Variables</div>' +
-          '<div id="runtime-state-variables"></div>' +
-          '<div class="title">Activity continuations</div>' +
-          '<div id="runtime-state-continuations"></div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-}
-
-function addScriptLineSpans(scriptText) {
-  return '<span class="scriptline">'+scriptText.split('\n').join('</span>\n<span class="scriptline">')+'</span>';
-}
-
-function expander(id) {
-  return '<a onclick="toggleCurrentExpander()"><img class="expander" src="img/down.png"/></a>';
-}
-
-function toggleCurrentExpander() {
-  $('#event-'+getScriptExecution().eventIndex+' pre').toggleClass('invisible');
-}
-
-function previousEvent() {
-  highlightEvent(getScriptExecution().eventIndex-1);
-}
-
-function nextEvent() {
-  highlightEvent(getScriptExecution().eventIndex+1);
-}
-
-function highlightEvent(index) {
-  let scriptExecution = getScriptExecution();
-  if (index>=0 && index<scriptExecution.events.length) {
-    let oldIndex = scriptExecution.eventIndex;
-    if (oldIndex || oldIndex==0) {
-      $('#event-'+oldIndex).removeClass('selectedEvent');
-      highlightScriptLine(scriptExecution, oldIndex, false);
-    }
-    $('#event-'+index).addClass('selectedEvent');
-    highlightScriptLine(scriptExecution, index, true);
-    scriptExecution.eventIndex = index;
-
-    $('#runtime-state-variables')
-        .html(variablesHtml(scriptExecution.events[index].runtimeState.variables));
-
-    $('#runtime-state-continuations')
-        .html(continuationsHtml(scriptExecution.events[index].runtimeState.continuations));
-  }
-}
-
-function variablesHtml(runtimeVariables) {
-  var html = '<div class="variables column">';
-  for (var variableName in runtimeVariables) {
-    if (runtimeVariables.hasOwnProperty(variableName)) {
-      html +=
-          '<div class="variable-name">' +
-            '<a class="variable-expander" onclick="toggleVariableVisibility(\''+variableName+'\');"><img class="expander" src="img/down.png"/></a>' +
-            '<div>' + variableName + '</div>' +
-          '</div>'+
-          '<div id="variable-'+variableName+'-summary" class="variable-summary"><code>' + JSON.stringify(runtimeVariables[variableName]) + '</code></div>' +
-          '<div id="variable-'+variableName+'-details" class="variable-details invisible">' +
-            '<pre>' + JSON.stringify(runtimeVariables[variableName], null, 2) + '</pre>' +
-          '</div>';
-    }
-  }
-  return html + '</div>';
-}
-
-function continuationsHtml(continuations) {
-  var html = '<div class="continuations column">';
-  for (var executionId in continuations) {
-    if (continuations.hasOwnProperty(executionId)) {
-      var a = continuations[executionId];
-      html +=
-          '<div class="continuation">' +
-          a.serviceName+' '+a.activityName+' '+executionId +
-          '</div>';
-    }
-  }
-  return html + '</div>';
-}
-
-function toggleVariableVisibility(variableName) {
-  $('#variable-'+variableName+'-details').toggleClass('invisible');
-  $('#variable-'+variableName+'-summary').toggleClass('invisible');
-}
-
-function getScriptExecution() {
-  return $('#events')[0].scriptExecution;
-}
-
-function highlightScriptLine(scriptExecution, eventIndex, highlight) {
-  var event = scriptExecution.events[eventIndex];
-  var line = getLine(event);
-  if (line) {
-    var lineSpan = $('span.scriptline').eq(line-1);
-    if (highlight) {
-      lineSpan.addClass('selected-script-line');
-    } else {
-      lineSpan.removeClass('selected-script-line');
-    }
-  }
-}
-
-function getLine(event) {
-  for(var eventType in event) {
-    return event[eventType].line;
-  }
-  return null;
-}
-
-function applySyntaxColoringScripts() {
-  $('pre.script').each(function(i, block) {
-    hljs.highlightBlock(block);
-  });
-}
-
-function createErrorMessage(msg) {
-  return '<code>'+msg+'</code>'
-}
-// showScriptExecution('se1');
-
-</script>
-
 
 </body>
 </html>
