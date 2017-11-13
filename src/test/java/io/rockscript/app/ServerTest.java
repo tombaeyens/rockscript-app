@@ -39,6 +39,14 @@ public class ServerTest extends AbstractServerTest {
   }
 
   @Test
+  public void testWebFiles() {
+    System.out.println(newGet("/")
+      .execute()
+      .assertStatusOk()
+      .getBodyAsString());
+  }
+
+  @Test
   public void testGetScripts() {
     String script1Version1 = deployShortTestScript(
       "script one",
@@ -125,6 +133,7 @@ public class ServerTest extends AbstractServerTest {
   }
 
   private String deployShortTestScript(String scriptName, String scriptText) {
+    assertNotNull(scriptText);
     return newPost("command")
         .bodyObject(new SaveScriptVersionCommand()
           .scriptName(scriptName)
