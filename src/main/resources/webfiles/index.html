@@ -106,6 +106,26 @@
   </style>
 
   <!------------------------------->
+  <!-- Common        -------------->
+  <!------------------------------->
+  <script language="JavaScript">
+    function executeCommand(command, done, fail) {
+      let request = $.ajax({
+        method: 'POST',
+        url: 'http://localhost:3652/command',
+        contentType: 'application/json; charset=utf-8',
+        data: JSON.stringify(command)});
+      if (done) {
+        request.done(done);
+      }
+      if (fail) {
+        request.fail(fail);
+      }
+    }
+  </script>
+
+
+  <!------------------------------->
   <!-- App           -------------->
   <!------------------------------->
   <script language="JavaScript">
@@ -281,6 +301,12 @@
       show: function(script) {
         $('#editor-panel').html(scriptEditorView.scriptHtml(script));
         scriptEditorView.initializeAceEditor();
+        scriptEditorView.showErrors(script.errors);
+        if (!script.active) {
+          $('#editor-status').html('(saved)');
+        } else {
+          $('#editor-status').html('(deployed version)');
+        }
       },
 
       initializeAceEditor: function() {
@@ -298,20 +324,47 @@
 
       scriptHtml: function(script) {
         scriptEditorView.script = script;
-        return ''+
+        return  '' +
             '<div class="editor-parent">' +
             '  <div class="editor-title">' +
-            '    <a class="editor-deploy inactive" href="#deploy" onclick="scriptEditorView.deployClicked()">Deploy</a> ' +
+            '    <div id="editor-deploy">'+scriptEditorView.deployButtonHtml(script)+'</div>' +
             '    <div id="editor-status"></div>' +
             '  </div>' +
             '  <div class="row editor-text-row">' +
             '    <div id="editor">' + script.text + '</div>' +
             '  </div>' +
-            '  <div class="editor-errors">' +
-            '    <div class="title">Errors</div>' +
-            '    <div class="message">Validation in progress...</div>' +
+            '  <div id="editor-errors">' +
             '  </div>' +
             '</div>';
+      },
+
+      showDeployButton: function(script) {
+        $('#editor-deploy').html(scriptEditorView.deployButtonHtml(script));
+      },
+
+      deployButtonHtml: function(script) {
+        if (script.active) {
+          return '';
+        }
+        return '<a href="#deploy" onclick="scriptEditorView.deployClicked()">Deploy</a>';
+      },
+
+      showErrors: function(errors) {
+        $('#editor-errors').html(scriptEditorView.errorsHtml(errors));
+      },
+
+      errorsHtml: function(errors) {
+        return '' +
+            (errors ? errors.map(function(error, i){
+              return '  <div class="editor-error" onclick="scriptEditorView.showError('+i+')">'+error.message+'</div>';
+            }).join('') : '<div>No errors</div>');
+      },
+
+      showError: function(errorIndex) {
+        let error = scriptEditorView.script.errors[errorIndex];
+        console.log('showing error: '+error.message);
+        console.log('showing error line: '+error.line);
+        console.log('showing error column: '+error.column);
       },
 
       editorTextChanged: function() {
@@ -325,31 +378,52 @@
       saveScript: function() {
         delete scriptEditorView.saveTimeout;
         $('#editor-status').html('(saving...)');
-        $.ajax({
-          method: 'POST',
-          url: 'http://localhost:3652/command',
-          contentType: 'application/json; charset=utf-8',
-          data: JSON.stringify({ saveScript: {
+        executeCommand({ saveScript: {
             scriptId: scriptEditorView.script.scriptId,
             scriptText: scriptEditorView.aceEditor.getValue()
-          }})})
-          .done(scriptEditorView.scriptSaved)
-          .fail(scriptEditorView.scriptSaveFailed);
+          }},
+          scriptEditorView.scriptSaved,
+          scriptEditorView.scriptSaveFailed);
       },
 
-      scriptSaved: function() {
+      scriptSaved: function(data) {
         let status = $('#editor-status');
         if (status.html()==='(saving...)') {
           status.html('(saved)');
+          scriptEditorView.script = data;
+          scriptEditorView.showDeployButton(data);
+          scriptEditorView.showErrors(data.errors);
         }
       },
 
       scriptSaveFailed: function() {
-        $('#editor-status').html('(failed)');
+        $('#editor-status').html('(save failed)');
       },
 
       deployClicked: function() {
         console.log('deploying script');
+        $('#editor-status').html('(deploying...)');
+        executeCommand({ saveScript: {
+            scriptId: scriptEditorView.script.scriptId,
+            scriptText: scriptEditorView.aceEditor.getValue(),
+            activate: true
+          }},
+          scriptEditorView.scriptDeployed,
+          scriptEditorView.scriptDeployFailed);
+      },
+
+      scriptDeployed: function(data) {
+        let status = $('#editor-status');
+        if (status.html()==='(deploying...)') {
+          status.html('(deployed version)');
+          scriptEditorView.script = data;
+          scriptEditorView.showDeployButton(data);
+          scriptEditorView.showErrors(data.errors);
+        }
+      },
+
+      scriptDeployFailed: function() {
+        $('#editor-status').html('(deploy failed)');
       }
     };
   </script>
@@ -374,21 +448,25 @@
       height: calc(100% - 170px);
     }
 
+    #editor-deploy {
+      display: inline-block;
+    }
+
     #editor-status {
       color: #aaa;
       display: inline-block;
     }
 
-    .editor-errors {
+    #editor-errors {
       height: 120px;
     }
 
-    .editor-errors > .title {
+    #editor-errors > .title {
       text-weight: bold;
     }
 
-    .editor-errors > .error {
-      color: red;
+    .editor-error {
+      color: #DD5E17;
     }
 
   </style>

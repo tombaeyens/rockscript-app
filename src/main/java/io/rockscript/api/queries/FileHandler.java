@@ -21,13 +21,10 @@ public class FileHandler implements RequestHandler {
 
       InputStream stream = FileHandler.class.getClassLoader().getResourceAsStream("webfiles" + path);
       if (stream!=null) {
+        // If you know how to get the next this done async, you're my hero!
+        // Real hero's submit PRs for async streaming fixes :)
         byte[] bytes = Io.readBytesFromStream(stream);
         response.bodyBytes(bytes);
-//        if (path.startsWith("/img")) {
-//        } else {
-//          String fileContent = Io.toString(stream);
-//          response.bodyString(fileContent);
-//        }
         response.statusOk();
         response.send();
         return;
