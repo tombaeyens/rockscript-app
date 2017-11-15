@@ -7,103 +7,30 @@
   <link href="fonts/RobotoSlab700100.css" rel="stylesheet">
   <!-- https://fonts.googleapis.com/css?family=Open+Sans:400,700 -->
   <link href="fonts/OpenSans400700.css" rel="stylesheet">
+
+  <!-- https://firebase.google.com/docs/auth/web/start -->
+  <script src="https://www.gstatic.com/firebasejs/4.6.2/firebase.js"></script>
+  <script src="https://cdn.firebase.com/libs/firebaseui/2.4.1/firebaseui.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/2.4.1/firebaseui.css" />
+
   <!--https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.2.1.min.js-->
   <script src="js/jquery-3.2.1.min.js"></script>
+
+  <!-- http://getbootstrap.com/docs/3.3/getting-started/#download -->
+  <script src="js/bootstrap-3.3.7.min.js"></script>
+  <link type="text/css" rel="stylesheet" href="css/bootstrap-3.3.7.css" />
+
+  <!-- https://github.com/ajaxorg/ace-builds/tree/master/src-noconflict -->
+  <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+
   <!--https://momentjs.com/downloads/moment.js-->
   <script src="js/moment-2.18.1.js"></script>
 
+  <!-- https://highlightjs.org/download/ -->
   <script src="js/highlight-9.12.0.js"></script>
   <link rel="stylesheet" href="css/highlight-github.css">
-  <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 
-  <!-- Common style -->
-  <style>
-    body {
-      margin: 0;
-      font-family: "Open Sans";
-      height: 100%
-    }
-
-    button {
-      font-family: "Open Sans";
-    }
-
-    a, a:visited {
-      text-decoration: none;
-      font-weight: bold;
-      color: #2B7190;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    h1 {
-      font-family:"Roboto Slab";
-      font-weight: 100;
-    }
-
-    pre {
-      margin: 0;
-    }
-
-    table {
-      border-spacing: 0;
-    }
-
-    .invisible {
-      display: none;
-    }
-
-    .hidden {
-      visibility: hidden;
-    }
-
-    .row {
-      display: flex;
-      flex-direction: row;
-    }
-
-    .column {
-      display: flex;
-      flex-direction: column;
-    }
-
-    tr.topline td {
-      border: 0px solid #ddd;
-      border-top-width: 1px;
-    }
-
-    tr.clickable:hover {
-      cursor: pointer;
-      background-color: #d1dfe6;
-    }
-
-    th {
-      text-align: left;
-      font-size: .7em;
-      font-weight: normal;
-      color: #999;
-      padding: 5px 10px;
-    }
-
-    td {
-      padding: 10px;
-    }
-
-    .fullheight {
-      height: 100%;
-    }
-
-    .fullwidth {
-      width: 100%;
-    }
-
-    .fill {
-      height: 100%;
-      width: 100%;
-    }
-  </style>
+  <link rel="stylesheet" href="css/rockscript.css">
 
   <!------------------------------->
   <!-- Common        -------------->
@@ -124,84 +51,171 @@
     }
   </script>
 
+  <!------------------------------->
+  <!-- Menu view              ----->
+  <!------------------------------->
+  <script type="application/javascript">
+    var loginView = {
 
+      authenticate: function() {
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (user) {
+            user.getIdToken().then(function(accessToken) {
+              console.log('user.getIdToken().accessToken: '+accessToken);
+              loginView.idToken = accessToken;
+            });
+            loginView.user = user;
+            menuView.show();
+          } else {
+            // User is signed out.
+            loginView.show();
+          }
+        }, function(error) {
+          console.log(error);
+        });
+      },
+
+      show: function() {
+        // FirebaseUI config.
+        var uiConfig = {
+          signInSuccessUrl: '#',
+          signInOptions: [
+            // Leave the lines as is for the providers you want to offer your users.
+            firebase.auth.EmailAuthProvider.PROVIDER_ID,
+            firebase.auth.GithubAuthProvider.PROVIDER_ID,
+            firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID
+          ],
+          // Terms of service url.
+          tosUrl: 'http://rockscript.io/terms-of-service'
+        };
+
+        $('#content').html('<div id="firebaseui-auth-container"></div>');
+
+        // Initialize the FirebaseUI Widget using Firebase.
+        if (!loginView.ui) {
+          loginView.ui = new firebaseui.auth.AuthUI(firebase.auth());
+        }
+        // The start method will wait until the DOM is loaded.
+        loginView.ui.start('#firebaseui-auth-container', uiConfig);
+      }
+
+    };
+
+    window.addEventListener('load', function() {
+      // Initialize Firebase
+      firebase.initializeApp({
+        apiKey: "AIzaSyAEQoaLQIoErzAyKtq5tAMy3XyxiBd6AtY",
+        authDomain: "rockscript-app.firebaseapp.com",
+        databaseURL: "https://rockscript-app.firebaseio.com",
+        projectId: "rockscript-app",
+        storageBucket: "",
+        messagingSenderId: "849661592709"
+      });
+      loginView.authenticate();
+    });
+  </script>
+  
+  
   <!------------------------------->
-  <!-- App           -------------->
+  <!-- Menu view              ----->
   <!------------------------------->
-  <script language="JavaScript">
-    var appView = {
+  <script type="application/javascript">
+    var menuView = {
+      show: function() {
+        $('#content').html('');
+        $('#navbar-contents').html(
+            '<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">\n' +
+            '  <ul class="nav navbar-nav">\n' +
+            '    <li id="menu-scripts"><a href="#" onclick="menuView.scriptsClicked()">Scripts</a></li>\n' +
+            '    <li id="menu-executions"><a href="#" onclick="menuView.scriptExecutionsClicked()">Executions</a></li>\n' +
+            '    <li id="menu-test"><a href="#" onclick="menuView.testClicked()">Test</a></li>\n' +
+            '  </ul>\n' +
+            '  <ul class="nav navbar-nav navbar-right">\n' +
+            '    <li class="dropdown">\n' +
+            '      <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">' +
+            '        '+loginView.user.displayName+' <span class="caret"></span>' +
+            '      </a>\n' +
+            '      <ul class="dropdown-menu">\n' +
+            '        <li><a href="#" onclick="menuView.logoutClicked()">Logout</a></li>\n' +
+            '      </ul>\n' +
+            '    </li>\n' +
+            '  </ul>\n' +
+            '</div>\n');
+      },
       scriptsClicked: function() {
+        $('.navbar-nav li').removeClass("active");
+        $('#menu-scripts').addClass("active");
         scriptsView.show();
       },
       scriptExecutionsClicked: function() {
+        $('.navbar-nav li').removeClass("active");
+        $('#menu-executions').addClass("active");
         scriptExecutionsView.show();
       },
+      testClicked: function() {
+        $('.navbar-nav li').removeClass("active");
+        $('#menu-test').addClass("active");
+        testView.show();
+      },
+      logoutClicked: function() {
+        delete menuView.user;
+        $('#navbar-contents').html('');
+        firebase.auth().signOut();
+        loginView.show();
+      }
     };
   </script>
   <!-- App component style -->
   <style>
-    #main {
-      position: absolute;
-      height: 100%;
-      width: 100%;
+    .navbar {
+      border-radius: 0px;
     }
 
-    .menu {
+    .navbar-default {
       background-color: #2B7191;
-      height: 70px;
-      width: 100%;
-      color: white;
-      line-height: 62px;
+      border-width: 0 0 1px 0;
+      border-color: #3e6c83;
     }
 
-    .logo {
+    .navbar-default .navbar-brand {
+      color: white;
+      font-size: .9em;
       font-family: "Roboto Slab";
       font-weight: 700;
       opacity: .7;
-      vertical-align: middle;
-      margin: 0 70px 0 30px;
+      margin-right: 10px;
     }
-
-    .logo img {
-      height: 1.1em;
+    .navbar-default .navbar-brand img {
+      height: 16px;
       opacity: 50;
       vertical-align: -4%;
+      display: inline-block;
+      margin-right: 5px;
     }
 
-    a.menu-item {
-      display: flex;
-      height: 100%;
-      align-items: center;
-      justify-content: center;
-      min-width: 100px;
-      padding: 0 15px;
-      border: solid #8DA7B7;
-      border-width: 0 0 0 1px;
-      font-size: .8em;
-      color: #fff;
+    .navbar-default .navbar-nav > li > a {
+      color: white;
+      font-weight: normal;
+    }
+    .navbar-default .navbar-nav > li > a:hover,
+    .navbar-default .navbar-nav > li > a:focus {
+      color: white;
+      background-color: #2d7a9a;
     }
 
-    a.menu-item-last {
-      border-right-width: 1px;
+    .navbar-default .navbar-nav > .active > a,
+    .navbar-default .navbar-nav > .active > a:hover,
+    .navbar-default .navbar-nav > .active > a:focus {
+      color: #eaf7fc;
+      background-color: #3f8bad;
     }
 
-    a.menu-item:hover {
-      background-color: #4383a0;
-    }
-
-    .content-row {
-      height: 100%;
-      width: 100%;
-    }
-
-    .content-padding {
-      width: 15px;
-      height: 100%;
-    }
-
-    #content {
-      height: calc(100% - 90px);
-      width: 100%;
+    .navbar-default .navbar-nav > .open > a,
+    .navbar-default .navbar-nav > .open > a:hover,
+    .navbar-default .navbar-nav > .open > a:focus {
+      color: white;
+      background-color: transparent;
     }
   </style>
 
@@ -230,7 +244,6 @@
         // cache the scripts for the script view
         scriptsView.scripts = scripts;
         return '' + // Q: how to get rid of this
-            '<div class="fill">' +
             '  <h1>Scripts</h1>' +
             '  <div class="row fill">' +
             '    <div class="scripts-list-container">' +
@@ -246,8 +259,7 @@
             '    </table>' +
             '    </div>' +
             '    <div id="editor-panel" class="fill"></div>' +
-            '  </div>' +
-            '</div>';
+            '  </div>';
       },
 
       scriptClicked: function(scriptIndex) {
@@ -305,7 +317,7 @@
         if (!script.active) {
           $('#editor-status').html('(saved)');
         } else {
-          $('#editor-status').html('(deployed version)');
+          $('#editor-status').html('(deployed)');
         }
       },
 
@@ -415,7 +427,7 @@
       scriptDeployed: function(data) {
         let status = $('#editor-status');
         if (status.html()==='(deploying...)') {
-          status.html('(deployed version)');
+          status.html('(deployed)');
           scriptEditorView.script = data;
           scriptEditorView.showDeployButton(data);
           scriptEditorView.showErrors(data.errors);
@@ -615,6 +627,8 @@
             delete scriptExecution.runtimeState.continuations[e.executionId];
           } else if (event.scriptEnded) {
             html += '<div>Script ended</div>';
+          } else if (event.activityError) {
+            html += '<div class="event-error">'+event.activityError.error+'</div>';
           }
           html += '</div>';
           event.runtimeState = $.extend(true, {}, scriptExecution.runtimeState);
@@ -785,6 +799,10 @@
       overflow-wrap: break-word;
     }
 
+    .event-error {
+      background-color: pink;
+    }
+
     .selectedEvent {
       background-color: #fff6f1;
     }
@@ -869,6 +887,80 @@
   </style>
 
   <!------------------------------->
+  <!-- Test view              ----->
+  <!------------------------------->
+  <script language="JavaScript">
+
+    var testView = {
+      show: function() {
+        $('#content').html(testView.testHtml());
+      },
+
+      testHtml: function() {
+        return '' + // Q: how to get rid of this
+            '<div class="fill">' +
+            '  <h1>Test</h1>' +
+            '  <div id="test-panel">' +
+            '    <a class="button" onclick="testView.runTestsClicked()">Run Test Suite</a>' +
+            '  </a>' +
+            '</div>';
+      },
+
+      runTestsClicked: function() {
+        executeCommand({runTests:{}},
+            testView.runTestsDone,
+            testView.runTestsFailed
+        );
+      },
+
+      runTestsDone: function(testResults) {
+        let resultsHtml = testView.testResultsHtml(testResults);
+        $('#test-panel').html(resultsHtml);
+      },
+
+      testResultsHtml: function(testResults) {
+        testView.testResults = testResults;
+        return testResults.map(function(testResult, i){
+          return '' +
+            '<div class="test-result" onclick="testView.showExecutionInspector('+i+')">' +
+            '  <img class="test-icon" src="img/'+(testResult.errors?'test-error.png':'test-ok.png')+'"/>' +
+            '  <div class="test-name">'+testResult.testName+'</div>' +
+            '</div>'
+            }).join('');
+      },
+
+      runTestsFailed: function() {
+        $('#test-panel').html('Test script execution failed');
+      },
+
+      showExecutionInspector(testIndex) {
+        let testResult = testView.testResults[testIndex];
+        let scriptExecution = testResult.scriptExecution;
+        scriptExecution.events = testResult.events;
+        scriptExecutionInspectorView.showScriptExecutionInspector(scriptExecution);
+      }
+    };
+  </script>
+  <style>
+    .test-result {
+      padding: 5px;
+      cursor: pointer;
+      display: table;
+    }
+    .test-result:hover {
+      background-color: #e8e8e8;
+    }
+    .test-icon {
+      display: inline-block;
+      height: 20px;
+      vertical-align: text-top;
+    }
+    .test-name {
+      display: inline-block;
+    }
+  </style>
+
+  <!------------------------------->
   <!-- Error view             ----->
   <!------------------------------->
   <script language="JavaScript">
@@ -886,23 +978,27 @@
 <body>
 
 <div id="main" class="column">
-  <div class="row menu">
-    <div class="logo">
-      <img src="img/hand-white.png"/> RockScript
-    </div>
-    <a id="show-scripts-menu-item" class="menu-item" href="#scripts" onclick="appView.scriptsClicked()">
-      Scripts
-    </a>
-    <a id="show-scripts-executions-menu-item" class="menu-item menu-item-last" href="#scriptExecutions" onclick="appView.scriptExecutionsClicked()">
-      Script executions
-    </a>
+
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="#"><img alt="RockScript.io" src="img/hand-white.png">RockScript.io</a>
+      </div>
+      <div id="navbar-contents">
+      </div>
+    </div><!-- /.container-fluid -->
+  </nav>
+
+  <div id="content">
   </div>
-  <div class="row content-row">
-    <div class="content-padding"> </div>
-    <div id="content">
-    </div>
-    <div class="content-padding"> </div>
-  </div>
+
 </div>
 
 </body>
