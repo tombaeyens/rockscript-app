@@ -8,8 +8,22 @@ import io.rockscript.netty.router.RequestHandler;
 import io.rockscript.util.Io;
 
 import java.io.InputStream;
+import java.net.URLConnection;
+import java.util.Map;
+
+import static io.rockscript.util.Maps.entry;
+import static io.rockscript.util.Maps.hashMap;
 
 public class FileHandler implements RequestHandler {
+
+  private final static Map<String,String> contentTypesByExtension = hashMap(
+    entry(".html",  "text/html"),
+    entry(".js",    "text/javascript"),
+    entry(".css",   "text/css"),
+    entry(".map",   "application/json"),
+    entry(".woff2", "font/woff2"),
+    entry(".ico",   "image/x-icon")
+  );
 
   @Override
   public void handle(AsyncHttpRequest request, AsyncHttpResponse response, Context context) {
@@ -25,6 +39,7 @@ public class FileHandler implements RequestHandler {
         // Real hero's submit PRs for async streaming fixes :)
         byte[] bytes = Io.readBytesFromStream(stream);
         response.bodyBytes(bytes);
+        response.headerContentType(getContentTypeFromPath(path));
         response.statusOk();
         response.send();
         return;
@@ -36,5 +51,21 @@ public class FileHandler implements RequestHandler {
     }
     response.statusNotFound();
     response.send();
+  }
+
+  private String getContentTypeFromPath(String path) {
+    int lastDotIndex = path.lastIndexOf('.');
+    if (lastDotIndex!=-1) {
+      String extension = path.substring(lastDotIndex);
+      String contentType = contentTypesByExtension.get(extension);
+      if (contentType!=null) {
+        return contentType;
+      }
+    }
+    String contentType = URLConnection.guessContentTypeFromName(path);
+    if (contentType!=null) {
+      return contentType;
+    }
+    throw new RuntimeException("Could not determine content type for "+path);
   }
 }
