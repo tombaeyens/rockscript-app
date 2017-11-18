@@ -15,6 +15,7 @@
  */
 package io.rockscript.api.queries;
 
+import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.Configuration;
 import io.rockscript.engine.impl.ExecutionEvent;
 import io.rockscript.engine.impl.ScriptStartedEvent;
@@ -51,11 +52,12 @@ public class ScriptExecutionQuery implements RequestHandler {
 
     ScriptStartedEvent startEvent = (ScriptStartedEvent) scriptExecution.events.get(0);
     String scriptId = startEvent.getScriptVersionId();
-    scriptExecution.scriptText = configuration
+    ScriptVersion scriptVersion = configuration
       .getScriptStore()
       .findScriptAstByScriptVersionId(scriptId)
-      .getScriptVersion()
-      .getText();
+      .getScriptVersion();
+    scriptExecution.scriptText = scriptVersion.getText();
+    scriptExecution.scriptName = scriptVersion.getName();
 
     response
       .bodyJson(scriptExecution)

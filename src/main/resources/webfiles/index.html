@@ -53,10 +53,6 @@
   <!--https://momentjs.com/downloads/moment.js-->
   <script src="js/moment-2.18.1.js"></script>
 
-  <!-- https://highlightjs.org/download/ -->
-  <script src="js/highlight-9.12.0.js"></script>
-  <link rel="stylesheet" href="css/highlight-github.css">
-
   <!------------------------------->
   <!-- Common        -------------->
   <!------------------------------->
@@ -74,8 +70,8 @@
         request.fail(fail);
       }
     }
-    function executeQuery(query, done, fail) {
-      let request = $.get('http://localhost:3652'+query, done);
+    function executeQuery(select, done, fail) {
+      let request = $.get('http://localhost:3652'+select, done);
       if (fail) {
         request.fail(fail);
       }
@@ -115,26 +111,6 @@
 
     a:hover {
       text-decoration: underline;
-    }
-
-    .table-hover tr {
-      cursor: pointer;
-    }
-
-    button {
-      font-family: "Open Sans";
-    }
-
-    .button {
-      background-color: #1a90bf;
-      color: white;
-      border: 1px solid #1780ac;
-      padding: 15px;
-      cursor: pointer;
-    }
-
-    pre {
-      margin: 0;
     }
 
     .hidden {
@@ -187,8 +163,13 @@
       },
 
       show: function() {
-        // FirebaseUI config.
-        var uiConfig = {
+        $('#content').html('<div id="login-panel"></div>');
+        // Initialize the FirebaseUI Widget using Firebase.
+        if (!loginView.ui) {
+          loginView.ui = new firebaseui.auth.AuthUI(firebase.auth());
+        }
+        // The start method will wait until the DOM is loaded.
+        loginView.ui.start('#login-panel', {
           signInSuccessUrl: '#',
           signInOptions: [
             // Leave the lines as is for the providers you want to offer your users.
@@ -199,18 +180,8 @@
           ],
           // Terms of service url.
           tosUrl: 'http://rockscript.io/terms-of-service'
-        };
-
-        contentView.display('content-login');
-
-        // Initialize the FirebaseUI Widget using Firebase.
-        if (!loginView.ui) {
-          loginView.ui = new firebaseui.auth.AuthUI(firebase.auth());
-        }
-        // The start method will wait until the DOM is loaded.
-        loginView.ui.start('#content-login', uiConfig);
+        });
       }
-
     };
 
     window.addEventListener('load', function() {
@@ -229,23 +200,23 @@
         $('#navbar-content').html(
             '<ul class="navbar-nav">\n' +
             '  <li id="menu-scripts" class="nav-item">\n' +
-            '<a class="nav-link" onclick="menuView.scriptsClicked()">Scripts</a>\n' +
+            '    <a class="nav-link" onclick="menuView.scriptsClicked()">Scripts</a>\n' +
             '  </li>\n' +
             '  <li id="menu-executions" class="nav-item">\n' +
-            '<a class="nav-link" onclick="menuView.scriptExecutionsClicked()">Executions</a>\n' +
+            '    <a class="nav-link" onclick="menuView.scriptExecutionsClicked()">Executions</a>\n' +
             '  </li>\n' +
-            '  <li id="menu-test" class="nav-item">\n' +
-            '<a class="nav-link" onclick="menuView.testClicked()">Test</a>\n' +
-            '  </li>\n' +
+//            '  <li id="menu-test" class="nav-item">\n' +
+//            '    <a class="nav-link" onclick="menuView.testClicked()">Test</a>\n' +
+//            '  </li>\n' +
             '</ul>\n' +
             '<ul class="navbar-nav ml-auto">\n' +
             '  <li id="navbar-user-name-dropdown" class="nav-item dropdown">\n' +
-            '<a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">\n' +
-            '  <div id="navbar-user-name">'+loginView.user.displayName+'</div> <span class="caret"></span>\n' +
-            '</a>\n' +
-            '<div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">\n' +
-            '  <a class="dropdown-item" onclick="menuView.logoutClicked()">Logout</a>\n' +
-            '</div>\n' +
+            '    <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">\n' +
+            '      <div id="navbar-user-name">'+loginView.user.displayName+'</div> <span class="caret"></span>\n' +
+            '    </a>\n' +
+            '    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">\n' +
+            '      <a class="dropdown-item" onclick="menuView.logoutClicked()">Logout</a>\n' +
+            '    </div>\n' +
             '  </li>\n' +
             '</ul>\n');
       },
@@ -266,7 +237,7 @@
       scriptExecutionsClicked: function() {
         $('.navbar-nav li').removeClass("active");
         $('#menu-executions').addClass("active");
-        scriptExecutionsView.show();
+        executionsView.show();
       },
 
       testClicked: function() {
@@ -290,7 +261,7 @@
       font-family: "Roboto Slab";
       font-weight: 100;
       opacity: .6;
-      margin-right: 15px;
+      margin-right: 25px;
     }
     .navbar-brand img {
       vertical-align: text-top;
@@ -313,7 +284,7 @@
   <!------------------------------->
   <!-- Script editor view     ----->
   <!------------------------------->
-  <script language="JavaScript">
+  <script type="application/javascript">
     var scriptEditorView = {
 
       show: function() {
@@ -331,39 +302,30 @@
       scriptEditorHtml: function(scripts) {
         return '' +
             '<div class="content-panel-title">Scripts</div>\n' +
-            '  <div class="row row-scripts">\n' +
-            '    <div class="col-4 script-navigator">\n' +
-            '      <table class="table table-sm table-hover">\n' +
-            '        <tbody id="script-navigator-body">\n' +
-            scriptEditorView.scriptNavigatorHtml(scripts) +
-            '        </tbody>\n' +
-            '      </table>\n' +
-            '    </div>\n' +
-            '    <div class="col-8 scripts-editor">\n' +
-            '        <div class="col-12 editor-action-bar">\n' +
-            '          <div id="editor-deploy"></div>\n' +
-            '          <div id="editor-status"></div>\n' +
-            '        </div>\n' +
-            '        <div class="col-12 editor-text-row">\n' +
-            '          <div id="ace-editor"></div>\n' +
-            '        </div>\n' +
-            '        <div id="editor-errors" class="col-12"></div>\n' +
-            '    </div>\n' +
-            '  </div>' +
-            '</div>';
-      },
-
-      scriptNavigatorHtml: function(scripts) {
-        return scripts.map(function(script, i) {
+            '<div class="row row-scripts">\n' +
+            '  <div class="col-4 script-navigator">\n' +
+            '    <table class="table table-sm table-hover">\n' +
+            '      <tbody id="script-navigator-body">\n' +
+            scripts.map(function(script, i) {
               return '' +
                   '<tr onclick="scriptEditorView.scriptClicked('+i+')">' +
                   '  <td>' + script.name + '</td>' +
                   '</tr>';
-            }).join('');
-      },
-
-      updateScriptNavigator: function(scripts) {
-        $('#script-navigator-body').html(scriptEditorView.scriptNavigatorHtml(scripts));
+            }).join('') +
+            '      </tbody>\n' +
+            '    </table>\n' +
+            '  </div>\n' +
+            '  <div class="col-8 scripts-editor">\n' +
+            '      <div class="col-12 editor-action-bar">\n' +
+            '        <div id="editor-deploy"></div>\n' +
+            '        <div id="editor-status"></div>\n' +
+            '      </div>\n' +
+            '      <div class="col-12 editor-text-row">\n' +
+            '        <div id="ace-editor"></div>\n' +
+            '      </div>\n' +
+            '      <div id="editor-errors" class="col-12"></div>\n' +
+            '  </div>\n' +
+            '</div>';
       },
 
       initializeAceEditor: function() {
@@ -509,6 +471,7 @@
 
     #ace-editor {
       height: 100%;
+      min-height: 100px;
       width: 100%;
     }
 
@@ -543,58 +506,56 @@
 
 
   <!------------------------------->
-  <!-- Script executions list ----->
+  <!-- Executions             ----->
   <!------------------------------->
-  <script language="JavaScript">
+  <script type="application/javascript">
 
-    var scriptExecutionsView = {
-
+    var executionsView = {
       show: function() {
-        $.get(
-          'http://localhost:3652/scriptExecutions',
-          function(data){
-            scriptExecutionsView.showScriptExecutions(data);
-          })
-          .fail(function(jqXHR, textStatus, errorThrown){
-            errorView.showXHRError(jqXHR, textStatus, errorThrown);
-          });
+        executeQuery('/scriptExecutions',
+          executionsView.showExecutions,
+          errorView.showXHRError);
       },
 
-      showScriptExecutions: function(scriptExecutions) {
-        $('#content').html(scriptExecutionsView.scriptExecutionsHtml(scriptExecutions));
+      showExecutions: function(scriptExecutions) {
+        $('#content').html(executionsView.executionsHtml(scriptExecutions));
       },
 
-      scriptExecutionsHtml: function(scriptExecutions) {
+      executionsHtml: function(scriptExecutions) {
         return '' +
-          '<div>' +
-          '  <h1>Script Executions</h1>' +
-          '  <table>' +
-          '    <tr>' +
-          '      <th>Id</th>' +
-          '      <th>Script</th>' +
-          '      <th>Started</th>' +
-          '      <th>Status</th>' +
-          '    </tr>' +
-          scriptExecutions
-            .map(function(scriptExecution) {
-              return '' +
-                '<tr class="topline clickable" onclick="scriptExecutionsView.scriptExecutionClicked(\''+scriptExecution.id+'\')">' +
-                '  <td>' + scriptExecution.id + '</td>' +
-                '  <td>' + scriptExecution.scriptShortName + ' <span class="script-version">(v=' + scriptExecution.scriptVersion + ')</span></td>' +
-                '  <td>' + moment(scriptExecution.start).fromNow() + '</td>' +
-                '  <td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
-                '</tr>';})
-            .join('') +
-          '  </table>' +
-          '</div>';
+            '<div class="content-panel-title">Executions</div>' +
+            '<div class="row">' +
+            '  <div class="col-7">' +
+            '    <table class="table table-sm table-hover">' +
+            '      <thead>' +
+            '        <tr>' +
+            '          <th>Id</th>' +
+            '          <th>Script</th>' +
+            '          <th>Started</th>' +
+            '          <th>Status</th>' +
+            '        </tr>' +
+            '      </thead>' +
+            '      <tbody>' +
+            scriptExecutions
+                .map(function(scriptExecution) {
+                  return '' +
+                      '<tr onclick="executionsView.scriptExecutionClicked(\''+scriptExecution.id+'\')">' +
+                      '  <td>' + scriptExecution.id + '</td>' +
+                      '  <td>' + scriptExecution.scriptName + ' <span class="script-version">(' + scriptExecution.scriptVersion + ')</span></td>' +
+                      '  <td>' + moment(scriptExecution.start).fromNow() + '</td>' +
+                      '  <td>' + (scriptExecution.end ? 'Ended' : 'Waiting') + '</td>' +
+                      '</tr>';})
+                .join('') +
+            '      </tbody>' +
+            '    </table>' +
+            '  </div>' +
+            '</div>';
       },
 
       scriptExecutionClicked: function(scriptExecutionId) {
-        scriptExecutionInspectorView.show(scriptExecutionId);
+        executionInspectorView.show(scriptExecutionId);
       }
     };
-
-
   </script>
   <style>
     .script-version {
@@ -604,46 +565,40 @@
 
 
   <!------------------------------------>
-  <!-- Script executions inspector ----->
+  <!-- Executions inspector        ----->
   <!------------------------------------>
-  <script language="JavaScript">
+  <script type="application/javascript">
 
-    var scriptExecutionInspectorView = {
+    var executionInspectorView = {
       show: function(scriptExecutionId) {
-        $.get(
-          'http://localhost:3652/scriptExecution/'+scriptExecutionId,
-          function(data){
-            scriptExecutionInspectorView.showScriptExecutionInspector(data);
-          })
-          .fail(function(jqXHR, textStatus, errorThrown){
-            console.log(textStatus+': '+errorThrown);
-            $('#content').html(createErrorMessage(textStatus+': '+errorThrown));
-          });
+        executeQuery('/scriptExecution/'+scriptExecutionId,
+            executionInspectorView.showExecutionInspector,
+            errorView.showXHRError);
       },
 
-      showScriptExecutionInspector: function(scriptExecution) {
-        $('#content').html(scriptExecutionInspectorView.createScriptExecutionHtml(scriptExecution));
-        scriptExecutionInspectorView.applySyntaxColoringScripts();
-        scriptExecutionInspectorView.highlightEvent(0);
+      showExecutionInspector: function(scriptExecution) {
+        $('#content').html(executionInspectorView.executionInspectorHtml(scriptExecution));
+        executionInspectorView.applySyntaxColoringScripts();
+        executionInspectorView.highlightEvent(0);
         $('body').off();
         $('body').keydown(function(e){
           if ($('events')) {
             if (e.keyCode=='38') {
-              scriptExecutionInspectorView.arrowUpPressed();
+              executionInspectorView.arrowUpPressed();
             } else if (e.keyCode=='40') {
-              scriptExecutionInspectorView.arrowDownPressed();
+              executionInspectorView.arrowDownPressed();
             } else if (e.keyCode=='37' || e.keyCode=='39') {
-              scriptExecutionInspectorView.expanderClicked();
+              executionInspectorView.expanderClicked();
             }
           }
         });
       },
 
-      createScriptExecutionHtml: function(scriptExecution) {
-        scriptExecutionInspectorView.scriptExecution = scriptExecution;
+      executionInspectorHtml: function(scriptExecution) {
+        executionInspectorView.scriptExecution = scriptExecution;
         let html =
           '<div class="fullheight">' +
-          '<h1>Script Execution '+scriptExecution.id+'</h1>' +
+          '<div class="content-panel-title">Execution '+scriptExecution.scriptName+' '+scriptExecution.id+'</div>' +
           '<div class="row script-execution-viewer">' +
           '<div id="events" class="events column">' +
           '<div class="title">Events</div>' +
@@ -659,13 +614,13 @@
             html += '<div>Script started</div>';
           } else if (event.variableCreated) {
             let e = event.variableCreated;
-            html += '<div><code>' + e.variableName + '</code> was created' +scriptExecutionInspectorView.expanderHtml('event-'+i)+
+            html += '<div><code>' + e.variableName + '</code> was created' +executionInspectorView.expanderHtml('event-'+i)+
                 '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.value, null, 2) + '</code></pre></div>';
             scriptExecution.runtimeState.variables[e.variableName] = e.value;
           } else if (event.activityStarted) {
             let e = event.activityStarted;
             html += '<div><code>' + e.serviceName + ' ' +e.activityName + ' ' + e.executionId +'</code> was started ' +
-                scriptExecutionInspectorView.expanderHtml('event-'+i) +
+                executionInspectorView.expanderHtml('event-'+i) +
                 '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.args, null, 2) + '</code></pre></div>';
             activityData[e.executionId] = {
               activityName: e.activityName,
@@ -680,7 +635,7 @@
             let e = event.activityEnd;
             let a = activityData[e.executionId];
             html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value ' +
-                scriptExecutionInspectorView.expanderHtml('event-'+i) +
+                executionInspectorView.expanderHtml('event-'+i) +
                 '<pre class="invisible"><code class="eventdetails">'+JSON.stringify(e.result, null, 2)+ '</code></pre></div>';
             delete scriptExecution.runtimeState.continuations[e.executionId];
           } else if (event.scriptEnded) {
@@ -693,7 +648,7 @@
         });
         return html +
           '</div>' +
-          '<pre id="scriptpre" class="script"><code>'+scriptExecutionInspectorView.addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
+          '<pre id="scriptpre" class="script"><code>'+executionInspectorView.addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
           '<div class="runtime-state column">' +
           '<div class="title">Variables</div>' +
           '<div id="runtime-state-variables"></div>' +
@@ -709,38 +664,38 @@
       },
 
       expanderHtml: function(id) {
-        return '<a onclick="scriptExecutionInspectorView.expanderClicked()"><img class="expander" src="img/down.png"/></a>';
+        return '<a onclick="executionInspectorView.expanderClicked()"><img class="expander" src="img/down.png"/></a>';
       },
 
       expanderClicked: function() {
-        $('#event-'+scriptExecutionInspectorView.scriptExecution.eventIndex+' pre').toggleClass('invisible');
+        $('#event-'+executionInspectorView.scriptExecution.eventIndex+' pre').toggleClass('invisible');
       },
 
       arrowUpPressed: function() {
-        scriptExecutionInspectorView.highlightEvent(scriptExecutionInspectorView.scriptExecution.eventIndex-1);
+        executionInspectorView.highlightEvent(executionInspectorView.scriptExecution.eventIndex-1);
       },
 
       arrowDownPressed: function() {
-        scriptExecutionInspectorView.highlightEvent(scriptExecutionInspectorView.scriptExecution.eventIndex+1);
+        executionInspectorView.highlightEvent(executionInspectorView.scriptExecution.eventIndex+1);
       },
 
       highlightEvent: function(index) {
-        let scriptExecution = scriptExecutionInspectorView.scriptExecution;
+        let scriptExecution = executionInspectorView.scriptExecution;
         if (index>=0 && index<scriptExecution.events.length) {
           let oldIndex = scriptExecution.eventIndex;
           if (oldIndex || oldIndex==0) {
             $('#event-'+oldIndex).removeClass('selectedEvent');
-            scriptExecutionInspectorView.highlightScriptLine(scriptExecution, oldIndex, false);
+            executionInspectorView.highlightScriptLine(scriptExecution, oldIndex, false);
           }
           $('#event-'+index).addClass('selectedEvent');
-          scriptExecutionInspectorView.highlightScriptLine(scriptExecution, index, true);
+          executionInspectorView.highlightScriptLine(scriptExecution, index, true);
           scriptExecution.eventIndex = index;
 
           $('#runtime-state-variables')
-              .html(scriptExecutionInspectorView.variablesHtml(scriptExecution.events[index].runtimeState.variables));
+              .html(executionInspectorView.variablesHtml(scriptExecution.events[index].runtimeState.variables));
 
           $('#runtime-state-continuations')
-              .html(scriptExecutionInspectorView.continuationsHtml(scriptExecution.events[index].runtimeState.continuations));
+              .html(executionInspectorView.continuationsHtml(scriptExecution.events[index].runtimeState.continuations));
         }
       },
 
@@ -750,7 +705,7 @@
           if (runtimeVariables.hasOwnProperty(variableName)) {
             html +=
                 '<div class="variable-name">' +
-                '<a class="variable-expander" onclick="scriptExecutionInspectorView.toggleVariableVisibility(\''+variableName+'\');"><img class="expander" src="img/down.png"/></a>' +
+                '<a class="variable-expander" onclick="executionInspectorView.toggleVariableVisibility(\''+variableName+'\');"><img class="expander" src="img/down.png"/></a>' +
                 '<div>' + variableName + '</div>' +
                 '</div>'+
                 '<div id="variable-'+variableName+'-summary" class="variable-summary"><code>' + JSON.stringify(runtimeVariables[variableName]) + '</code></div>' +
@@ -783,7 +738,7 @@
 
       highlightScriptLine: function(scriptExecution, eventIndex, highlight) {
         var event = scriptExecution.events[eventIndex];
-        var line = scriptExecutionInspectorView.getLine(event);
+        var line = executionInspectorView.getLine(event);
         if (line) {
           var lineSpan = $('span.scriptline').eq(line-1);
           if (highlight) {
@@ -947,7 +902,7 @@
   <!------------------------------->
   <!-- Test view              ----->
   <!------------------------------->
-  <script language="JavaScript">
+  <script type="application/javascript">
 
     var testView = {
       show: function() {
@@ -995,7 +950,7 @@
         let testResult = testView.testResults[testIndex];
         let scriptExecution = testResult.scriptExecution;
         scriptExecution.events = testResult.events;
-        scriptExecutionInspectorView.showScriptExecutionInspector(scriptExecution);
+        executionInspectorView.showExecutionInspector(scriptExecution);
       }
     };
   </script>
@@ -1021,7 +976,7 @@
   <!------------------------------->
   <!-- Error view             ----->
   <!------------------------------->
-  <script language="JavaScript">
+  <script type="application/javascript">
     var errorView = {
       showXHRError: function(jqXHR, textStatus, errorThrown) {
         $('#content').html(errorView.createErrorMessage(textStatus+': '+errorThrown));
