@@ -2,7 +2,7 @@ package io.rockscript.app.scriptrepo;
 
 
 import io.rockscript.api.model.Script;
-import io.rockscript.engine.Configuration;
+import io.rockscript.Engine;
 import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.impl.ScriptStore;
 
@@ -13,8 +13,8 @@ public class ScriptRepository {
   Map<String,ScriptVersion> undeployedScripts = new HashMap<>();
   ScriptStore scriptStore;
 
-  public ScriptRepository(Configuration configuration) {
-    this.scriptStore = configuration.getScriptStore();
+  public ScriptRepository(Engine engine) {
+    this.scriptStore = engine.getScriptStore();
   }
 
   public List<ScriptVersion> getLatestScriptTexts() {

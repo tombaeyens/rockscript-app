@@ -5,7 +5,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
-import io.rockscript.netty.router.ForbiddenException;
+import io.rockscript.http.servlet.ForbiddenException;
 import io.rockscript.netty.router.Interceptor;
 import io.rockscript.netty.router.InterceptorContext;
 import org.slf4j.Logger;

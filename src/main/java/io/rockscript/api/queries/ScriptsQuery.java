@@ -16,7 +16,7 @@
 package io.rockscript.api.queries;
 
 import io.rockscript.app.scriptrepo.ScriptRepository;
-import io.rockscript.engine.Configuration;
+import io.rockscript.Engine;
 import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.netty.router.*;
 
@@ -28,8 +28,8 @@ public class ScriptsQuery implements RequestHandler {
 
   @Override
   public void handle(AsyncHttpRequest request, AsyncHttpResponse response, Context context) {
-    Configuration configuration = context.get(Configuration.class);
-    ScriptRepository scriptRepository = configuration.getObject(ScriptRepository.class);
+    Engine engine = context.get(Engine.class);
+    ScriptRepository scriptRepository = engine.getObject(ScriptRepository.class);
     List<ScriptVersion> latestScriptVersions = scriptRepository.getLatestScriptTexts();
     response
       .bodyJson(latestScriptVersions)

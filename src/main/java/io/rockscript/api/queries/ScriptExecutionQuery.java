@@ -16,7 +16,7 @@
 package io.rockscript.api.queries;
 
 import io.rockscript.api.model.ScriptVersion;
-import io.rockscript.engine.Configuration;
+import io.rockscript.Engine;
 import io.rockscript.engine.impl.ExecutionEvent;
 import io.rockscript.engine.impl.ScriptStartedEvent;
 import io.rockscript.netty.router.*;
@@ -42,17 +42,17 @@ public class ScriptExecutionQuery implements RequestHandler {
   public void handle(AsyncHttpRequest request, AsyncHttpResponse response, Context context) {
     String scriptExecutionId = request.getPathParameter("scriptExecutionId");
 
-    Configuration configuration = context.get(Configuration.class);
+    Engine engine = context.get(Engine.class);
 
     ScriptExecution scriptExecution = new ScriptExecution();
     scriptExecution.id = scriptExecutionId;
-    scriptExecution.events = configuration
+    scriptExecution.events = engine
       .getEventStore()
       .findEventsByScriptExecutionId(scriptExecutionId);
 
     ScriptStartedEvent startEvent = (ScriptStartedEvent) scriptExecution.events.get(0);
     String scriptId = startEvent.getScriptVersionId();
-    ScriptVersion scriptVersion = configuration
+    ScriptVersion scriptVersion = engine
       .getScriptStore()
       .findScriptAstByScriptVersionId(scriptId)
       .getScriptVersion();

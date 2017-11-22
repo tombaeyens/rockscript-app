@@ -16,7 +16,7 @@
 package io.rockscript.api.queries;
 
 import com.google.gson.Gson;
-import io.rockscript.engine.Configuration;
+import io.rockscript.Engine;
 import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.impl.*;
 import io.rockscript.netty.router.*;
@@ -83,11 +83,11 @@ public class ScriptExecutionsQuery implements RequestHandler {
 
   @Override
   public void handle(AsyncHttpRequest request, AsyncHttpResponse response, Context context) {
-    Configuration configuration = context.get(Configuration.class);
-    Gson gson = configuration.getGson();
+    Engine engine = context.get(Engine.class);
+    Gson gson = engine.getGson();
 
     Map<String, ScriptVersion> scriptVersionsById = new HashMap<>();
-    configuration
+    engine
       .getScriptStore()
       .getScripts()
       .forEach(script->script
@@ -95,7 +95,7 @@ public class ScriptExecutionsQuery implements RequestHandler {
         .forEach(scriptVersion->scriptVersionsById.put(scriptVersion.getId(), scriptVersion)));
 
     ScriptExecutionList list = new ScriptExecutionList(scriptVersionsById);
-    EventStore eventStore = configuration.getEventStore();
+    EventStore eventStore = engine.getEventStore();
     eventStore
       .getEvents()
       .forEach(list::processEvent);
