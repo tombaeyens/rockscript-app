@@ -1,9 +1,9 @@
 package io.rockscript.app.cqrs.commands;
 
-import io.rockscript.api.CommandsModule;
+import io.rockscript.EnginePlugin;
 import io.rockscript.gson.PolymorphicTypeAdapterFactory;
 
-public class AppCommandsModule implements CommandsModule {
+public class AppEnginePlugin implements EnginePlugin {
 
   @Override
   public void registerCommands(PolymorphicTypeAdapterFactory polymorphicTypeAdapterFactory) {

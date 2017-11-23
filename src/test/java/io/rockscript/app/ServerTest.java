@@ -89,7 +89,7 @@ public class ServerTest extends AbstractServerTest {
         .continuationReference(continuationReference))
       .execute()
       .assertStatusOk()
-      .getBodyAs(EndActivityResponse.class);
+      .getBodyAs(ScriptExecutionResponse.class);
 
     newPost("command")
       .bodyObject(new StartScriptExecutionCommand()
