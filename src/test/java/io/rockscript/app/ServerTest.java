@@ -135,13 +135,12 @@ public class ServerTest extends AbstractServerTest {
   private String deployShortTestScript(String scriptName, String scriptText) {
     assertNotNull(scriptText);
     return newPost("command")
-        .bodyObject(new SaveScriptVersionCommand()
+        .bodyObject(new DeployScriptVersionCommand()
           .scriptName(scriptName)
-          .scriptText(scriptText)
-          .activate())
+          .scriptText(scriptText))
         .execute()
         .assertStatusOk()
-        .getBodyAs(SaveScriptVersionResponse.class)
+        .getBodyAs(ScriptVersion.class)
         .getId();
   }
 
