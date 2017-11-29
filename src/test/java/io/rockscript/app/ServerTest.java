@@ -85,7 +85,7 @@ public class ServerTest extends AbstractServerTest {
     ContinuationReference continuationReference = SimpleImportProvider.removeFirstContinuationReference(scriptExecutionId);
 
     newPost("command")
-      .bodyObject(new EndActivityCommand()
+      .bodyObject(new EndServiceFunctionCommand()
         .continuationReference(continuationReference))
       .execute()
       .assertStatusOk()
