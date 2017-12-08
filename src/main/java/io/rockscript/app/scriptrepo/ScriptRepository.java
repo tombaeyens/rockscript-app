@@ -40,7 +40,7 @@ public class ScriptRepository {
 
   public void saveScriptText(String scriptName, String scriptText) {
     ScriptVersion scriptVersion = new ScriptVersion();
-    scriptVersion.setName(scriptName);
+    scriptVersion.setScriptName(scriptName);
     scriptVersion.setText(scriptText);
     undeployedScripts.put(scriptName, scriptVersion);
   }

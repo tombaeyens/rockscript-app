@@ -16,13 +16,19 @@
 package io.rockscript.app;
 
 import com.google.gson.reflect.TypeToken;
+import io.rockscript.Servlet;
+import io.rockscript.api.commands.DeployScriptVersionCommand;
+import io.rockscript.api.commands.EndServiceFunctionCommand;
+import io.rockscript.api.commands.ScriptExecutionResponse;
+import io.rockscript.api.commands.StartScriptExecutionCommand;
+import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.api.queries.ScriptExecutionQuery;
 import io.rockscript.api.queries.ScriptExecutionsQuery;
-import io.rockscript.api.commands.*;
-import io.rockscript.api.model.ScriptVersion;
 import io.rockscript.engine.impl.ContinuationReference;
-import io.rockscript.test.AbstractServerTest;
+import io.rockscript.http.server.HttpServer;
+import io.rockscript.test.LatestServerExceptionListener;
 import io.rockscript.test.SimpleImportProvider;
+import io.rockscript.test.server.AbstractServerTest;
 import io.rockscript.util.Io;
 import org.junit.Test;
 
@@ -31,6 +37,20 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class ServerTest extends AbstractServerTest {
+
+  @Override
+  protected HttpServer createHttpServer() {
+    // engine is initialized above in the setUp
+    assertNotNull(engine);
+
+    Servlet servlet = new AppServlet(engine);
+    servlet.exceptionListener(new LatestServerExceptionListener());
+
+    return new HttpServer(PORT)
+      .servlet(servlet)
+      // .filter(new Authentication())
+      ;
+  }
 
   @Override
   public void setUp() {
@@ -43,7 +63,7 @@ public class ServerTest extends AbstractServerTest {
     System.out.println(newGet("/")
       .execute()
       .assertStatusOk()
-      .getBodyAsString());
+      .getBody());
   }
 
   @Test
@@ -76,27 +96,27 @@ public class ServerTest extends AbstractServerTest {
 
     assertNotNull(scriptId);
 
-    EngineStartScriptExecutionResponse startScriptResponse = new StartScriptExecutionCommand()
-        .scriptVersionId(scriptId)
-        .execute(getConfiguration());
+    ScriptExecutionResponse startScriptResponse = new StartScriptExecutionCommand()
+      .scriptVersionId(scriptId)
+      .execute(engine);
 
     String scriptExecutionId = startScriptResponse.getScriptExecutionId();
 
     ContinuationReference continuationReference = SimpleImportProvider.removeFirstContinuationReference(scriptExecutionId);
 
-    newPost("command")
-      .bodyObject(new EndServiceFunctionCommand()
+    newPost("/command")
+      .bodyJson(new EndServiceFunctionCommand()
         .continuationReference(continuationReference))
       .execute()
       .assertStatusOk()
       .getBodyAs(ScriptExecutionResponse.class);
 
-    newPost("command")
-      .bodyObject(new StartScriptExecutionCommand()
+    newPost("/command")
+      .bodyJson(new StartScriptExecutionCommand()
         .scriptVersionId(scriptId))
       .execute()
       .assertStatusOk()
-      .getBodyAs(EngineStartScriptExecutionResponse.class);
+      .getBodyAs(ScriptExecutionResponse.class);
 
     List<ScriptExecutionsQuery.ScriptExecution> scriptExecutions = newGet("scriptExecutions")
       .execute()
@@ -119,23 +139,23 @@ public class ServerTest extends AbstractServerTest {
     assertNotNull(scriptExecution.start);
     assertNull(scriptExecution.end);
 
-    Object body = newGet("scriptExecution/se1")
+    Object body = newGet("/scriptExecution/se1")
       .execute()
       .assertStatusOk()
       .getBody();
 
-    ScriptExecutionQuery.ScriptExecution scriptExecutionDetails = newGet("scriptExecution/se1")
+    ScriptExecutionQuery.ScriptExecutionDetails scriptExecutionDetails = newGet("scriptExecution/se1")
       .execute()
       .assertStatusOk()
-      .getBodyAs(new TypeToken<ScriptExecutionQuery.ScriptExecution>() {}.getType());
+      .getBodyAs(ScriptExecutionQuery.ScriptExecutionDetails.class);
 
-    assertTrue(scriptExecutionDetails.scriptText.contains("\n"));
+    assertTrue(scriptExecutionDetails.getScriptVersion().getScriptName().contains("\n"));
   }
 
   private String deployShortTestScript(String scriptName, String scriptText) {
     assertNotNull(scriptText);
-    return newPost("command")
-        .bodyObject(new DeployScriptVersionCommand()
+    return newPost("/command")
+        .bodyJson(new DeployScriptVersionCommand()
           .scriptName(scriptName)
           .scriptText(scriptText))
         .execute()

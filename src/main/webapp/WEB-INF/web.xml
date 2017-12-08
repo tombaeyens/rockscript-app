@@ -7,7 +7,7 @@
 
     <servlet>
         <servlet-name>RockScriptServlet</servlet-name>
-        <servlet-class>io.rockscript.app.RockScriptServlet</servlet-class>
+        <servlet-class>io.rockscript.app.AppServlet</servlet-class>
     </servlet>
 
     <servlet-mapping>
