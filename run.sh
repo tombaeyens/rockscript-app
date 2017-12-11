@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-cd ../rockscript
-java -jar /Code/rockscript-app/target/rockscript.jar server -ed
+java -cp /Code/rockscript-app/src/main/resources/:/Code/rockscript-app/target/rockscript.jar io.rockscript.app.AppServer examples
