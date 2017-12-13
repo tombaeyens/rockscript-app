@@ -5,25 +5,42 @@ package io.rockscript.app;
 
 import io.rockscript.Engine;
 import io.rockscript.Server;
-import io.rockscript.TestEngine;
+import io.rockscript.test.TestEngine;
 import io.rockscript.http.server.HttpServer;
 
 public class AppServer extends Server {
 
-  @Override
-  protected TestEngine createEngine() {
-    return new TestEngine();
+  public AppServer(String[] args) {
+    super(args);
   }
 
   @Override
-  protected HttpServer createHttpServer(Engine engine) {
-    return new HttpServer(DEFAULT_ROCKSCRIPT_PORT)
-      .servlet(new AppServlet(engine))
+  protected Engine createEngine(String[] args) {
+    return new AppEngine(args);
+  }
+
+  @Override
+  public HttpServer createHttpServer(Engine engine) {
+    AppServlet appServlet = createAppServlet(engine);
+    return createHttpServer(appServlet, DEFAULT_ROCKSCRIPT_PORT);
+  }
+
+  public static AppServlet createAppServlet(Engine engine) {
+    return new AppServlet(engine);
+  }
+
+  public static HttpServer createHttpServer(AppServlet appServlet, int port) {
+    return new HttpServer(port)
+      .servlet(appServlet)
       // .filter(new Authentication())
       ;
   }
 
+  public static HttpServer createHttpServer(Engine engine, int port) {
+    return createHttpServer(createAppServlet(engine), port);
+  }
+
   public static void main(String[] args) {
-    runServerTillCtrlC(new AppServer(), args);
+    runServer(new AppServer(args));
   }
 }

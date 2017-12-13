@@ -34,26 +34,27 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>rockscript-app</artifactId>
-    <packaging>pom</packaging>
+  <artifactId>rockscript-app</artifactId>
+  <packaging>pom</packaging>
 
-    <parent>
-        <groupId>io.rockscript</groupId>
-        <artifactId>rockscript-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-    </parent>
+  <parent>
+    <groupId>io.rockscript</groupId>
+    <artifactId>rockscript-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
 
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+  <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
 
-    <modules>
-        <module>rockscript-app-httpfiles</module>
-        <module>rockscript-app-jar</module>
-        <module>rockscript-app-server</module>
-    </modules>
+  <modules>
+    <module>rockscript-app-httpfiles</module>
+    <module>rockscript-app-jar</module>
+    <module>rockscript-app-server</module>
+    <module>rockscript-app-war</module>
+  </modules>
 
 </project>

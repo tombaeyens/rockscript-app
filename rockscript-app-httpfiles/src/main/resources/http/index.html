@@ -72,8 +72,8 @@
         request.fail(fail);
       }
     }
-    function executeQuery(select, done, fail) {
-      let request = $.get('http://localhost:3652'+select, done);
+    function executeQuery(query, done, fail) {
+      let request = $.get('http://localhost:3652/query/'+query, done);
       if (fail) {
         request.fail(fail);
       }
@@ -101,14 +101,11 @@
       font-size: 1.2em;
     }
 
-    a:not([href]) {
-      cursor: pointer;
-    }
-
-    a, a:visited {
+    a, a:visited, a:not([href]):not([tabindex]) {
       text-decoration: none;
       font-weight: bold;
       color: #1a90bf;
+      cursor: pointer;
     }
 
     a:hover {
@@ -118,6 +115,18 @@
     .hidden {
       display: none;
     }
+
+    a.button a.button:visited, a.button:not([href]):not([tabindex]) {
+      background-color: #1a90bf;
+      color: white;
+      font-weight: 700;
+      margin: 5px;
+      border: 0px;
+      border-radius: 5px;
+      padding: 5px 15px 5px 15px;
+      display: inline-block;
+    }
+
   </style>
 
   <!------------------------------->
@@ -255,7 +264,12 @@
       background-color: #2B7191 !important;
       color: white;
     }
-    .navbar-nav a {
+
+    #brand {
+      color: white;
+    }
+
+    .navbar-nav a, .navbar-nav a:visited, .navbar-nav a:not([href]):not([tabindex]) {
       font-weight: normal;
     }
     .navbar-brand {
@@ -290,7 +304,7 @@
     var scriptEditorView = {
 
       show: function() {
-        executeQuery('/query?q=scripts',
+        executeQuery('scripts',
             function(scripts) {
               // cache the scripts for the script view
               scriptEditorView.scripts = scripts;
@@ -306,14 +320,17 @@
             '<div class="content-panel-title">Scripts</div>\n' +
             '<div class="row row-scripts">\n' +
             '  <div class="col-4 script-navigator">\n' +
+            '    <div class="script-actions">\n' +
+            '      <a onclick="scriptEditorView.newScriptClicked()">+ New script</a>\n' +
+            '    </div>\n' +
+            '    <div class="new-script-input hidden">\n' +
+            '      <input id="new-script-name" type="text" onclick="scriptEditorView" />\n' +
+            '      <a class="button" onclick="scriptEditorView.createScriptClicked()">Create</a>\n' +
+            '      <a onclick="scriptEditorView.cancelNewScriptClicked()">Cancel</a>\n' +
+            '    </div>\n' +
             '    <table class="table table-sm table-hover">\n' +
             '      <tbody id="script-navigator-body">\n' +
-            scripts.map(function(script, i) {
-              return '' +
-                  '<tr onclick="scriptEditorView.scriptClicked('+i+')">' +
-                  '  <td>' + script.name + '</td>' +
-                  '</tr>';
-            }).join('') +
+            scriptEditorView.scriptsListHtml(scripts)+
             '      </tbody>\n' +
             '    </table>\n' +
             '  </div>\n' +
@@ -328,6 +345,47 @@
             '      <div id="editor-errors" class="col-12"></div>\n' +
             '  </div>\n' +
             '</div>';
+      },
+
+      scriptsListHtml: function(scripts) {
+        return scripts.map(function(script, i) {
+          return '' +
+              '<tr onclick="scriptEditorView.scriptClicked('+i+')">' +
+              '  <td>' + script.name + '</td>' +
+              '</tr>';
+        }).join('');
+      },
+
+      newScriptClicked: function() {
+        $('.new-script-input').toggleClass('hidden');
+        $('.script-actions').toggleClass('hidden');
+        $('#new-script-name').focus();
+      },
+
+      createScriptClicked: function() {
+        let newScriptNameInput = $('#new-script-name');
+        let scriptName = newScriptNameInput.val();
+        if (''!=scriptName) {
+          newScriptNameInput.val('');
+          executeCommand({saveScript:{
+            scriptName: scriptName,
+            scriptText: ''
+          }}, function(scriptVersion) {
+            $('.new-script-input').toggleClass('hidden');
+            $('.script-actions').toggleClass('hidden');
+            scriptEditorView.scripts.unshift({
+              id: scriptVersion.scriptId,
+              name: scriptVersion.scriptName
+            });
+            $('#script-navigator-body').html(scriptEditorView.scriptsListHtml(scriptEditorView.scripts));
+            scriptEditorView.scriptClicked(0);
+          }, errorView.showXHRError);
+        }
+      },
+
+      cancelNewScriptClicked: function() {
+        $('.new-script-input').toggleClass('hidden');
+        $('.script-actions').toggleClass('hidden');
       },
 
       initializeAceEditor: function() {
@@ -349,20 +407,27 @@
       },
 
       openScriptInEditor: function(scriptIndex) {
-
-        executeQuery(...)
-
-        var script = scriptEditorView.scripts[scriptIndex];
         scriptEditorView.scriptIndex = scriptIndex;
-        scriptEditorView.script = script;
-        scriptEditorView.updateActionBar(script);
-        scriptEditorView.updateScriptEditor(script);
-        scriptEditorView.updateErrors(script);
+        scriptEditorView.script = scriptEditorView.scripts[scriptIndex];
+        let scriptId = scriptEditorView.script.id;
+        executeQuery('script-versions?scriptId='+scriptId, function(scriptVersions){
+          scriptEditorView.scriptVersions = scriptVersions;
+          scriptEditorView.openScriptVersionInEditor(scriptVersions.length-1);
+        }, errorView.showXHRError);
+      },
+
+      openScriptVersionInEditor(scriptVersionIndex) {
+        scriptEditorView.scriptVersionIndex = scriptVersionIndex;
+        let scriptVersion = scriptEditorView.scriptVersions[scriptVersionIndex];
+        scriptEditorView.scriptVersion = scriptVersion;
+        scriptEditorView.updateActionBar(scriptVersion);
+        scriptEditorView.updateScriptEditor(scriptVersion);
+        scriptEditorView.updateErrors(scriptVersion);
         scriptEditorView.aceEditor.focus();
       },
 
-      updateActionBar: function(script) {
-        if (script.active) {
+      updateActionBar: function(scriptVersion) {
+        if (scriptVersion.active) {
           $('#editor-deploy').html('');
           $('#editor-status').html('(deployed)');
         } else {
@@ -371,14 +436,14 @@
         }
       },
 
-      updateScriptEditor: function(script) {
+      updateScriptEditor: function(scriptVersion) {
         scriptEditorView.aceEditor.getSession().off('change', scriptEditorView.editorTextChanged);
-        scriptEditorView.aceEditor.setValue(script.text, -1);
+        scriptEditorView.aceEditor.setValue(scriptVersion.text, -1);
         scriptEditorView.aceEditor.getSession().on('change', scriptEditorView.editorTextChanged);
       },
 
-      updateErrors: function(script) {
-        $('#editor-errors').html(scriptEditorView.errorsHtml(script.errors));
+      updateErrors: function(scriptVersion) {
+        $('#editor-errors').html(scriptEditorView.errorsHtml(scriptVersion.errors));
       },
 
       errorsHtml: function(errors) {
@@ -399,7 +464,7 @@
       },
 
       showError: function(errorIndex) {
-        let error = scriptEditorView.script.errors[errorIndex];
+        let error = scriptEditorView.scriptVersion.errors[errorIndex];
         scriptEditorView.aceEditor.gotoLine(error.line, error.column, true);
         scriptEditorView.aceEditor.focus();
       },
@@ -416,7 +481,7 @@
         delete scriptEditorView.saveTimeout;
         $('#editor-status').html('(saving...)');
         executeCommand({ saveScript: {
-            scriptId: scriptEditorView.script.scriptId,
+            scriptId: scriptEditorView.script.id,
             scriptText: scriptEditorView.aceEditor.getValue()
           }},
           scriptEditorView.scriptSaved,
@@ -428,11 +493,11 @@
         scriptEditorView.updateCurrentScriptData(data);
       },
 
-      updateCurrentScriptData: function(script) {
-        scriptEditorView.script = script;
-        scriptEditorView.scripts[scriptEditorView.scriptIndex] = script;
-        scriptEditorView.updateActionBar(script);
-        scriptEditorView.updateErrors(script);
+      updateCurrentScriptData: function(scriptVersion) {
+        scriptEditorView.scriptVersions.push(scriptVersion);
+        scriptEditorView.scriptVersion = scriptVersion;
+        scriptEditorView.updateActionBar(scriptVersion);
+        scriptEditorView.updateErrors(scriptVersion);
       },
 
       scriptSaveFailed: function() {
@@ -442,18 +507,17 @@
       deployClicked: function() {
         console.log('deploying script');
         $('#editor-status').html('(deploying...)');
-        executeCommand({ saveScript: {
-            scriptId: scriptEditorView.script.scriptId,
-            scriptText: scriptEditorView.aceEditor.getValue(),
-            activate: true
+        executeCommand({ deployScript: {
+            scriptId: scriptEditorView.script.id,
+            scriptText: scriptEditorView.aceEditor.getValue()
           }},
           scriptEditorView.scriptDeployed,
           scriptEditorView.scriptDeployFailed);
       },
 
-      scriptDeployed: function(data) {
+      scriptDeployed: function(scriptVersion) {
         let status = $('#editor-status');
-        scriptEditorView.updateCurrentScriptData(data);
+        scriptEditorView.updateCurrentScriptData(scriptVersion);
       },
 
       scriptDeployFailed: function() {
@@ -469,6 +533,9 @@
       height: calc(100vh - 140px);
       overflow-y: auto;
       font-size: .9em;
+    }
+    .script-actions {
+      padding: .3rem;
     }
     tr.selected {
       background-color: rgba(0,0,0,.030);
@@ -487,7 +554,7 @@
     }
 
     .editor-action-bar {
-      background-color: rgba(0,0,0,.030);
+      /*background-color: rgba(0,0,0,.030);*/
       padding: .3rem;
       font-size: .9em;
     }
@@ -832,7 +899,7 @@
     }
 
     .red-button {
-      mon-width: 100px;
+      min-width: 100px;
       min-height: 40px;
       background-color: #DD5E17;
       color: white;
@@ -998,7 +1065,7 @@
 <div id="main">
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <a class="navbar-brand"><img alt="RockScript.io" src="img/hand-white.png" height="16">RockScript.io</a>
+    <a id="brand" class="navbar-brand"><img alt="RockScript.io" src="img/hand-white.png" height="16">RockScript.io</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-contents" aria-controls="navbar-contents" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>

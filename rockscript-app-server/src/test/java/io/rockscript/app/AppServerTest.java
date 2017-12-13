@@ -1,22 +1,26 @@
 /*
- * Copyright ©2017, RockScript.io. All rights reserved.
+ * Copyright (c) 2017 RockScript.io.
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package io.rockscript.app;
 
 import com.google.gson.reflect.TypeToken;
-import io.rockscript.Servlet;
+import io.rockscript.Engine;
 import io.rockscript.api.commands.DeployScriptVersionCommand;
 import io.rockscript.api.commands.EndServiceFunctionCommand;
 import io.rockscript.api.commands.ScriptExecutionResponse;
@@ -34,22 +38,16 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static io.rockscript.test.Assert.assertContains;
 import static org.junit.Assert.*;
 
-public class ServerTest extends AbstractServerTest {
+public class AppServerTest extends AbstractServerTest {
 
   @Override
   protected HttpServer createHttpServer() {
-    // engine is initialized above in the setUp
-    assertNotNull(engine);
-
-    Servlet servlet = new AppServlet(engine);
-    servlet.exceptionListener(new LatestServerExceptionListener());
-
-    return new HttpServer(PORT)
-      .servlet(servlet)
-      // .filter(new Authentication())
-      ;
+    AppServlet appServlet = AppServer.createAppServlet(engine);
+    appServlet.exceptionListener(new LatestServerExceptionListener());
+    return AppServer.createHttpServer(appServlet, PORT);
   }
 
   @Override
@@ -58,12 +56,18 @@ public class ServerTest extends AbstractServerTest {
     SimpleImportProvider.setUp();
   }
 
+  @Override
+  protected Engine createEngine() {
+    return new AppEngine();
+  }
+
   @Test
-  public void testWebFiles() {
-    System.out.println(newGet("/")
+  public void testAppIndexHtml() {
+    String html = newGet("/")
       .execute()
       .assertStatusOk()
-      .getBody());
+      .getBody();
+    assertContains("<title>RockScript App</title>", html);
   }
 
   @Test

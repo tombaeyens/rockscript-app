@@ -10,17 +10,21 @@ import io.rockscript.api.CommandHandler;
 import io.rockscript.api.QueryHandler;
 import io.rockscript.engine.PingHandler;
 
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import java.util.Map;
+
 public class AppServlet extends Servlet {
+
+  public AppServlet() {
+  }
 
   public AppServlet(Engine engine) {
     super(engine);
   }
 
   @Override
-  protected void registerRequestHandlers() {
-    requestHandler(new CommandHandler(engine));
-    requestHandler(new QueryHandler(engine));
-    requestHandler(new PingHandler(engine));
-    requestHandler(new AppFileHandler(engine));
+  protected Engine createEngine(Map<String, String> configuration) {
+    return new AppEngine(configuration);
   }
 }

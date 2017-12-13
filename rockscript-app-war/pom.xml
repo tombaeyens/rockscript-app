@@ -24,17 +24,82 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>rockscript-app-war</artifactId>
-    <packaging>war</packaging>
+  <artifactId>rockscript-app-war</artifactId>
+  <packaging>war</packaging>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.rockscript</groupId>
-            <artifactId>rockscript-app</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-    </dependencies>
+  <parent>
+    <groupId>io.rockscript</groupId>
+    <artifactId>rockscript-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.rockscript</groupId>
+      <artifactId>rockscript-app-jar</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.rockscript</groupId>
+      <artifactId>rockscript-app-httpfiles</artifactId>
+      <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.25</version>
+    </dependency>
+  </dependencies>
+
+  <!--<build>-->
+    <!--<plugins>-->
+      <!--<plugin>-->
+        <!--<groupId>org.apache.maven.plugins</groupId>-->
+        <!--<artifactId>maven-war-plugin</artifactId>-->
+        <!--<version>3.2.0</version>-->
+        <!--<configuration>-->
+          <!--<webResources>-->
+            <!--<resource>-->
+              <!--<directory>../../rockscript/rockscript-httpfiles/src/main/resources/http/</directory>-->
+            <!--</resource>-->
+            <!--<resource>-->
+              <!--<directory>../rockscript-app-httpfiles/src/main/resources/http/</directory>-->
+            <!--</resource>-->
+          <!--</webResources>-->
+        <!--</configuration>-->
+      <!--</plugin>-->
+    <!--</plugins>-->
+  <!--</build>-->
+
+  <profiles>
+    <profile>
+      <id>run</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-maven-plugin</artifactId>
+            <version>9.4.7.v20170914</version>
+            <configuration>
+              <httpConnector>
+                <port>3652</port>
+              </httpConnector>
+            </configuration>
+            <executions>
+              <execution>
+                <id>run</id>
+                <phase>install</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
