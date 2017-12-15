@@ -127,6 +127,11 @@
       display: inline-block;
     }
 
+    code, pre {
+      color: #792915;
+      background-color: #f6f6f6;
+    }
+
   </style>
 
   <!------------------------------->
@@ -321,7 +326,7 @@
             '<div class="row row-scripts">\n' +
             '  <div class="col-4 script-navigator">\n' +
             '    <div class="script-actions">\n' +
-            '      <a onclick="scriptEditorView.newScriptClicked()">+ New script</a>\n' +
+            '      <a onclick="scriptEditorView.newScriptClicked()">New script</a>\n' +
             '    </div>\n' +
             '    <div class="new-script-input hidden">\n' +
             '      <input id="new-script-name" type="text" onclick="scriptEditorView" />\n' +
@@ -538,7 +543,7 @@
       padding: .3rem;
     }
     tr.selected {
-      background-color: rgba(0,0,0,.030);
+      background-color: #f0f5fa;
     }
 
     #ace-editor {
@@ -584,7 +589,7 @@
 
     var executionsView = {
       show: function() {
-        executeQuery('/scriptExecutions',
+        executeQuery('script-executions',
           executionsView.showExecutions,
           errorView.showXHRError);
       },
@@ -643,15 +648,19 @@
 
     var executionInspectorView = {
       show: function(scriptExecutionId) {
-        executeQuery('/scriptExecution/'+scriptExecutionId,
+        executeQuery('script-execution?id='+scriptExecutionId,
             executionInspectorView.showExecutionInspector,
             errorView.showXHRError);
       },
 
       showExecutionInspector: function(scriptExecution) {
+        executionInspectorView.processEvents(scriptExecution);
+
         $('#content').html(executionInspectorView.executionInspectorHtml(scriptExecution));
-        executionInspectorView.applySyntaxColoringScripts();
+
+        executionInspectorView.initializeAceEditor(scriptExecution.scriptVersion.text);
         executionInspectorView.highlightEvent(0);
+
         $('body').off();
         $('body').keydown(function(e){
           if ($('events')) {
@@ -667,72 +676,114 @@
       },
 
       executionInspectorHtml: function(scriptExecution) {
-        executionInspectorView.scriptExecution = scriptExecution;
-        let html =
-          '<div class="fullheight">' +
-          '<div class="content-panel-title">Execution '+scriptExecution.scriptName+' '+scriptExecution.id+'</div>' +
-          '<div class="row script-execution-viewer">' +
-          '<div id="events" class="events column">' +
-          '<div class="title">Events</div>' +
-          '<div class="events-help">Use &#x25B2; and &#x25BC; to scroll through the events</div>';
-        scriptExecution.runtimeState = {
-          variables: {},
-          continuations: {}
-        };
-        var activityData = {};
-        scriptExecution.events.forEach(function (event, i){
-          html += '<div id="event-'+i+'" class="event">';
-          if (event.scriptStarted) {
-            html += '<div>Script started</div>';
-          } else if (event.variableCreated) {
-            let e = event.variableCreated;
-            html += '<div><code>' + e.variableName + '</code> was created' +executionInspectorView.expanderHtml('event-'+i)+
-                '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.value, null, 2) + '</code></pre></div>';
-            scriptExecution.runtimeState.variables[e.variableName] = e.value;
-          } else if (event.activityStarted) {
-            let e = event.activityStarted;
-            html += '<div><code>' + e.serviceName + ' ' +e.activityName + ' ' + e.executionId +'</code> was started ' +
-                executionInspectorView.expanderHtml('event-'+i) +
-                '<pre class="invisible"><code class="eventdetails">' + JSON.stringify(e.args, null, 2) + '</code></pre></div>';
-            activityData[e.executionId] = {
-              activityName: e.activityName,
-              serviceName: e.serviceName
-            };
-          } else if (event.activityWaiting) {
-            let e = event.activityWaiting;
-            let a = activityData[e.executionId];
-            html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> waiting for callback</div>';
-            scriptExecution.runtimeState.continuations[e.executionId] = { activityName: a.activityName, serviceName: a.serviceName };
-          } else if (event.activityEnd) {
-            let e = event.activityEnd;
-            let a = activityData[e.executionId];
-            html += '<div><code>' + a.serviceName + ' ' +a.activityName + ' ' + e.executionId +'</code> ends with return value ' +
-                executionInspectorView.expanderHtml('event-'+i) +
-                '<pre class="invisible"><code class="eventdetails">'+JSON.stringify(e.result, null, 2)+ '</code></pre></div>';
-            delete scriptExecution.runtimeState.continuations[e.executionId];
-          } else if (event.scriptEnded) {
-            html += '<div>Script ended</div>';
-          } else if (event.activityError) {
-            html += '<div class="event-error">'+event.activityError.error+'</div>';
-          }
-          html += '</div>';
-          event.runtimeState = $.extend(true, {}, scriptExecution.runtimeState);
-        });
-        return html +
-          '</div>' +
-          '<pre id="scriptpre" class="script"><code>'+executionInspectorView.addScriptLineSpans(scriptExecution.scriptText)+'</code></pre>' +
-          '<div class="runtime-state column">' +
-          '<div class="title">Variables</div>' +
-          '<div id="runtime-state-variables"></div>' +
-          '<div class="title">Activity continuations</div>' +
-          '<div id="runtime-state-continuations"></div>' +
-          '</div>' +
-          '</div>' +
-          '</div>';
+        return '' +
+          '<div class="row"> \n' +
+          '  <div class="content-panel-title col-12">Execution '+scriptExecution.scriptVersion.scriptName+' '+scriptExecution.id+'</div> \n' +
+          '</div> \n' +
+          '<div class="row inspector"> \n' +
+          '  <div class="col-4 inspector-column"> \n' +
+          '      <div class="title">Events</div> \n' +
+          '      <div class="events-help">Use &#x25B2; and &#x25BC; to scroll through the events</div> \n' +
+          '      <div id="event-list">' +
+          executionInspectorView.eventListHtml(scriptExecution) +
+          '      </div>' +
+          '  </div>\n' +
+          '  <div class="col-4 inspector-column"> \n' +
+          '    <div id="ace-editor"></div>\n' +
+          '  </div>\n' +
+          '  <div class="col-4 inspector-column"> \n' +
+          '    <div class="title">Variables</div> \n' +
+          '    <div id="runtime-state-variables" class="content-panel"></div> \n' +
+          '    <div class="title">Event details</div> \n' +
+          '    <div id="event-details" class="content-panel"></div> \n' +
+//          '    <div class="title">Activity continuations</div> \n' +
+//          '    <div id="runtime-state-continuations" class="content-panel"></div> \n' +
+          '  </div>\n' +
+          '</div>\n';
       },
 
-      addScriptLineSpans: function(scriptText) {
-        return '<span class="scriptline">'+scriptText.split('\n').join('</span>\n<span class="scriptline">')+'</span>';
+      processEvents: function(scriptExecution) {
+        executionInspectorView.scriptExecution = scriptExecution;
+        var variables = {};
+        var continuations = {};
+        var activityData = {};
+        scriptExecution.events.forEach(function (event, i) {
+          let summaryHtml = null;
+          let details = null;
+          if (event.scriptStarted) {
+            summaryHtml = 'Script started';
+          } else if (event.variableCreated) {
+            let e = event.variableCreated;
+            summaryHtml = 'Variable <code>' + e.variableName + '</code> was created';
+            details = {
+              variable: e.variableName,
+              value: e.value };
+            variables[e.variableName] = e.value;
+          } else if (event.serviceFunctionStarting) {
+            let e = event.serviceFunctionStarting;
+            summaryHtml = 'Function <code>' +e.functionName + '</code> was started ';
+            details = {
+              args: e.args,
+              service: e.serviceName,
+              functionName: e.functionName,
+              executionId: e.executionId };
+            activityData[e.executionId] = {
+              functionName: e.functionName,
+              serviceName: e.serviceName };
+          } else if (event.serviceFunctionWaiting) {
+            let e = event.serviceFunctionWaiting;
+            let a = activityData[e.executionId];
+            summaryHtml = 'Function <code>' +a.functionName + '</code> waiting for callback';
+            details = {
+              service: a.serviceName,
+              functionName: a.functionName,
+              executionId: e.executionId };
+            continuations[e.executionId] = { functionName: a.functionName, serviceName: a.serviceName };
+          } else if (event.serviceFunctionEnded) {
+            let e = event.serviceFunctionEnded;
+            let a = activityData[e.executionId];
+            summaryHtml = 'Function <code>' +a.functionName +'</code> ends';
+            details = {
+              result: e.result,
+              service: a.serviceName,
+              functionName: a.functionName,
+              executionId: e.executionId };
+            delete continuations[e.executionId];
+          } else if (event.scriptEnded) {
+            summaryHtml = 'Script ended';
+          } else if (event.activityError) {
+            summaryHtml = '<div class="event-error">'+event.activityError.error+'</div>';
+          }
+
+          event.summaryHtml = '<div id="event-'+i+'" class="event">'+summaryHtml+'</div>';
+          event.detailsHtml = '<div class="event-details-title">'+summaryHtml+'</div>'+executionInspectorView.detailsHtml('dtls',details);
+          event.runtimeState = {
+            variables: $.extend(true, {}, variables), // $.extend clones the object
+            continuations: $.extend(true, {}, continuations)
+          };
+        });
+      },
+
+      eventListHtml: function(scriptExecution) {
+        return scriptExecution.events.map(function(e){
+          return e.summaryHtml;
+        }).join('\n');
+      },
+
+      initializeAceEditor: function(text) {
+        var aceEditor = ace.edit("ace-editor");
+        aceEditor.setTheme("ace/theme/solarized_light");
+        aceEditor.getSession().setMode("ace/mode/javascript");
+        aceEditor.setShowPrintMargin(false);
+        aceEditor.renderer.setShowGutter(false);
+        aceEditor.renderer.$cursorLayer.element.style.display = "none";
+        aceEditor.renderer.setPadding( 20 );
+        aceEditor.setValue(text, -1);
+        aceEditor.setReadOnly(true);
+        aceEditor.resize();
+        aceEditor.gotoLine(0, 0, true);
+        // the ace editor is cached so that it can be accessed later.
+        executionInspectorView.aceEditor = aceEditor;
       },
 
       expanderHtml: function(id) {
@@ -757,36 +808,47 @@
           let oldIndex = scriptExecution.eventIndex;
           if (oldIndex || oldIndex==0) {
             $('#event-'+oldIndex).removeClass('selectedEvent');
-            executionInspectorView.highlightScriptLine(scriptExecution, oldIndex, false);
           }
           $('#event-'+index).addClass('selectedEvent');
-          executionInspectorView.highlightScriptLine(scriptExecution, index, true);
+          executionInspectorView.highlightScriptLine(scriptExecution, index);
           scriptExecution.eventIndex = index;
+          let event = scriptExecution.events[index];
+
+          $('#event-details')
+              .html(event.detailsHtml);
 
           $('#runtime-state-variables')
-              .html(executionInspectorView.variablesHtml(scriptExecution.events[index].runtimeState.variables));
+              .html(executionInspectorView.detailsHtml('var',event.runtimeState.variables));
 
-          $('#runtime-state-continuations')
-              .html(executionInspectorView.continuationsHtml(scriptExecution.events[index].runtimeState.continuations));
+//          $('#runtime-state-continuations')
+//              .html(executionInspectorView.continuationsHtml(event.runtimeState.continuations));
         }
       },
 
-      variablesHtml: function(runtimeVariables) {
-        var html = '<div class="variables column">';
-        for (var variableName in runtimeVariables) {
-          if (runtimeVariables.hasOwnProperty(variableName)) {
+      // used for displaying variables and event details
+      detailsHtml: function(detailsType, details) {
+        var html = '<div class="inspector-details">';
+        for (var propertyName in details) {
+          if (details.hasOwnProperty(propertyName)) {
+
             html +=
-                '<div class="variable-name">' +
-                '<a class="variable-expander" onclick="executionInspectorView.toggleVariableVisibility(\''+variableName+'\');"><img class="expander" src="img/down.png"/></a>' +
-                '<div>' + variableName + '</div>' +
-                '</div>'+
-                '<div id="variable-'+variableName+'-summary" class="variable-summary"><code>' + JSON.stringify(runtimeVariables[variableName]) + '</code></div>' +
-                '<div id="variable-'+variableName+'-details" class="variable-details invisible">' +
-                '<pre>' + JSON.stringify(runtimeVariables[variableName], null, 2) + '</pre>' +
-                '</div>';
+              '<div class="detail-property">' +
+              '  <div class="detail-summary-line">' +
+              '    <div class="detail-summary"><span class="detail-name">' + propertyName + ':</span> <code id="'+detailsType+'-'+propertyName+'-summary" >' + JSON.stringify(details[propertyName]) + '</code></div>' +
+              '    <a class="detail-expander" onclick="executionInspectorView.toggleVariableVisibility(\''+detailsType+'\',\''+propertyName+'\');"><img class="expander" src="img/down.png"/></a>' +
+              '  </div>' +
+              '  <div id="'+detailsType+'-'+propertyName+'-details" class="detail-details hidden">' +
+              '    <pre><code>' + JSON.stringify(details[propertyName], null, 2) + '</code></pre>' +
+              '  </div>' +
+              '</div>';
           }
         }
         return html + '</div>';
+      },
+
+      toggleVariableVisibility: function(detailsType, propertyName) {
+        $('#'+detailsType+'-'+propertyName+'-details').toggleClass('hidden');
+        $('#'+detailsType+'-'+propertyName+'-summary').toggleClass('hidden');
       },
 
       continuationsHtml: function(continuations) {
@@ -796,28 +858,21 @@
             var a = continuations[executionId];
             html +=
                 '<div class="continuation">' +
-                a.serviceName+' '+a.activityName+' '+executionId +
+                a.serviceName+' '+a.functionName+' '+executionId +
                 '</div>';
           }
         }
         return html + '</div>';
       },
 
-      toggleVariableVisibility: function(variableName) {
-        $('#variable-'+variableName+'-details').toggleClass('invisible');
-        $('#variable-'+variableName+'-summary').toggleClass('invisible');
-      },
-
-      highlightScriptLine: function(scriptExecution, eventIndex, highlight) {
+      highlightScriptLine: function(scriptExecution, eventIndex) {
         var event = scriptExecution.events[eventIndex];
         var line = executionInspectorView.getLine(event);
         if (line) {
-          var lineSpan = $('span.scriptline').eq(line-1);
-          if (highlight) {
-            lineSpan.addClass('selected-script-line');
-          } else {
-            lineSpan.removeClass('selected-script-line');
-          }
+          executionInspectorView.aceEditor.gotoLine(line, 1);
+          executionInspectorView.aceEditor.setOption("highlightActiveLine", true);
+        } else {
+          executionInspectorView.aceEditor.setOption("highlightActiveLine", false);
         }
       },
 
@@ -827,18 +882,15 @@
         }
         return null;
       },
-
-      applySyntaxColoringScripts: function() {
-        $('pre.script').each(function(i, block) {
-          hljs.highlightBlock(block);
-        });
-      }
     };
 
 
   </script>
   <style>
-    pre.script {
+
+    .inspector-column {
+      height: calc(100vh - 120px);
+      overflow: auto;
     }
 
     .script-execution-viewer {
@@ -853,28 +905,15 @@
       text-align: right;
     }
 
-    .script-execution-viewer .events {
-      width: calc(33% - 5px);
-      display: flex;
-      flex-direction: column;
-      overflow-y: scroll;
-    }
-    .script-execution-viewer .script {
-      width: calc(33% - 5px);
-      padding: 7px;
-      margin: 0 20px 0 20px;
-      display: flex;
-      overflow-y: auto;
-    }
-    .script-execution-viewer .runtime-state {
-      width: calc(33% - 5px);
-      overflow-y: auto;
-      align-items: left;
+    .inspector .title {
+      background-color: #999;
+      padding: 1px 0 1px 10px;
+      font-size: .8em;
+      color: white;
     }
 
-    .script-execution-viewer .title {
-      font-weight: bold;
-      color: #bbb;
+    .inspector .content-panel {
+      margin-bottom: 15px;
     }
 
     .event {
@@ -889,7 +928,7 @@
     }
 
     .selectedEvent {
-      background-color: #fff6f1;
+      background-color: #f0f5fa;
     }
 
     .expander {
@@ -928,42 +967,45 @@
       width: 100%;
     }
 
-    .variables {
-      width: 100%;
-      margin-bottom: 15px;
+    .event-details-title {
+      background-color: #f0f5fa;
+      padding: 7px 0 7px 4px;
+      margin-bottom: 5px;
     }
 
-    .variable-name {
-      font-size:.9em;
-      margin-top: 7px;
+    .detail-property {
     }
 
-    .variable-summary {
-      width: calc(100% - 25px);
-      margin: 0 10px;
-      font-size: .8em;
-      color: #888;
-      white-space: nowrap;
+    .detail-summary-line {
       overflow: hidden;
+      font-size: .8em;
+      white-space: nowrap;
+      margin: 2px 0 8px 0;
     }
 
-    .variable-summary > code {
-      width: 100px;
-      display: block;
-    }
-
-    .variable-expander {
+    .detail-expander {
       float:right;
     }
 
-    .variable-details {
-      overflow: auto;
+    .detail-summary {
+      float:left;
+      position:absolute;
+      overflow: hidden;
+      width: calc(100% - 50px);
     }
 
-    .variable-details pre {
+    .detail-name {
+      font-weight: bold;
+    }
+
+    .detail-details pre {
       margin: 0 7px;
       padding: 0;
       font-size: .8em;
+    }
+
+    .detail-details {
+      overflow: auto;
     }
 
     .selected-script-line {
@@ -1065,7 +1107,7 @@
 <div id="main">
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <a id="brand" class="navbar-brand"><img alt="RockScript.io" src="img/hand-white.png" height="16">RockScript.io</a>
+    <a id="brand" class="navbar-brand">RockScript.io<img alt="RockScript.io" src="img/hand-white.png" height="16"></a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-contents" aria-controls="navbar-contents" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
