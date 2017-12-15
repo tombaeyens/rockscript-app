@@ -395,7 +395,7 @@
 
       initializeAceEditor: function() {
         var aceEditor = ace.edit("ace-editor");
-        aceEditor.setTheme("ace/theme/monokai");
+        aceEditor.setTheme("ace/theme/solarized_light");
         aceEditor.getSession().setMode("ace/mode/javascript");
         aceEditor.setShowPrintMargin(false);
         // editor.renderer.setShowGutter(false);
@@ -434,10 +434,10 @@
       updateActionBar: function(scriptVersion) {
         if (scriptVersion.active) {
           $('#editor-deploy').html('');
-          $('#editor-status').html('(deployed)');
+          $('#editor-status').html('(deployed v'+scriptVersion.version+')');
         } else {
-          $('#editor-deploy').html('<a href="#deploy" onclick="scriptEditorView.deployClicked()">Deploy</a>');
-          $('#editor-status').html('(saved)');
+          $('#editor-deploy').html('<a onclick="scriptEditorView.deployClicked()">Deploy</a>');
+          $('#editor-status').html('(saved v'+scriptVersion.version+')');
         }
       },
 
@@ -540,7 +540,9 @@
       font-size: .9em;
     }
     .script-actions {
-      padding: .3rem;
+      padding: .4rem 0 .4rem 0;
+      font-size: .9em;
+      height: 32px
     }
     tr.selected {
       background-color: #f0f5fa;
@@ -559,9 +561,9 @@
     }
 
     .editor-action-bar {
-      /*background-color: rgba(0,0,0,.030);*/
-      padding: .3rem;
+      padding: .4rem 0 .4rem 0;
       font-size: .9em;
+      height: 32px
     }
 
     #editor-deploy {
@@ -571,6 +573,7 @@
     #editor-status {
       color: #888;
       display: inline-block;
+      float: right;
     }
 
     #editor-errors {
@@ -830,15 +833,21 @@
         var html = '<div class="inspector-details">';
         for (var propertyName in details) {
           if (details.hasOwnProperty(propertyName)) {
-
+            let propertyValue = details[propertyName];
+            let expandedValue = null;
+            if (typeof propertyValue ==='string') {
+              expandedValue = propertyValue;
+            } else {
+              expandedValue = JSON.stringify(propertyValue, null, 2);
+            }
             html +=
               '<div class="detail-property">' +
               '  <div class="detail-summary-line">' +
-              '    <div class="detail-summary"><span class="detail-name">' + propertyName + ':</span> <code id="'+detailsType+'-'+propertyName+'-summary" >' + JSON.stringify(details[propertyName]) + '</code></div>' +
+              '    <div class="detail-summary"><span class="detail-name">' + propertyName + ':</span> <code id="'+detailsType+'-'+propertyName+'-summary" >' + JSON.stringify(propertyValue) + '</code></div>' +
               '    <a class="detail-expander" onclick="executionInspectorView.toggleVariableVisibility(\''+detailsType+'\',\''+propertyName+'\');"><img class="expander" src="img/down.png"/></a>' +
               '  </div>' +
               '  <div id="'+detailsType+'-'+propertyName+'-details" class="detail-details hidden">' +
-              '    <pre><code>' + JSON.stringify(details[propertyName], null, 2) + '</code></pre>' +
+              '    <pre><code>' + expandedValue + '</code></pre>' +
               '  </div>' +
               '</div>';
           }
