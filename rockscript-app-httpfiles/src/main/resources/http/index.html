@@ -341,8 +341,19 @@
             '  </div>\n' +
             '  <div class="col-8 scripts-editor">\n' +
             '      <div class="col-12 editor-action-bar">\n' +
-            '        <div id="editor-deploy"></div>\n' +
+            '        <div id="editor-actions"></div>\n' +
             '        <div id="editor-status"></div>\n' +
+            '      </div>\n' +
+            '      <div class="col-12 editor-start-script hidden">\n' +
+            '        <div class="editor-start-title">Starting script \n' +
+            '          <span class="editor-start-scriptname"></span>' +
+            '        </div>\n' +
+            '        <div class="editor-start-input-title">Input:</div>\n' +
+            '        <textarea class="editor-start-input-text" placeholder="{&quot;json&quot;: &quot;input&quot;,\n &quot;goes&quot;: &quot;here&quot;}"></textarea>\n' +
+            '        <div class="editor-start-actions">\n' +
+            '          <a id="editor-start-button" class="button" onclick="scriptEditorView.startButtonClicked()">Start</a>\n' +
+            '          <a onclick="scriptEditorView.cancelStartClicked()">Cancel</a>\n' +
+            '        </div>\n' +
             '      </div>\n' +
             '      <div class="col-12 editor-text-row">\n' +
             '        <div id="ace-editor"></div>\n' +
@@ -408,6 +419,8 @@
       scriptClicked: function(scriptIndex) {
         $('#script-navigator-body tr').removeClass('selected');
         $('#script-navigator-body tr:nth-child('+(scriptIndex+1)+')').toggleClass('selected');
+        $('.editor-action-bar').removeClass('hidden');
+        $('.editor-start-script').addClass('hidden');
         scriptEditorView.openScriptInEditor(scriptIndex);
       },
 
@@ -432,13 +445,27 @@
       },
 
       updateActionBar: function(scriptVersion) {
+        let startLinkHtml = '<a onclick="scriptEditorView.startActionClicked()">Start</a>';
+        let deployLinkHtml = '<a onclick="scriptEditorView.deployClicked()">Deploy</a>';
+        let actionLinksHtml = null;
         if (scriptVersion.active) {
-          $('#editor-deploy').html('');
-          $('#editor-status').html('(deployed v'+scriptVersion.version+')');
+          actionLinksHtml = startLinkHtml;
         } else {
-          $('#editor-deploy').html('<a onclick="scriptEditorView.deployClicked()">Deploy</a>');
-          $('#editor-status').html('(saved v'+scriptVersion.version+')');
+          actionLinksHtml = startLinkHtml+' | '+deployLinkHtml;
         }
+        $('#editor-actions').html(actionLinksHtml);
+
+        let scriptStatus = null;
+        if (scriptVersion.active) {
+          scriptStatus = 'deployed';
+        } else {
+          if (scriptEditorView.scriptVersion===scriptVersion.version) {
+            scriptStatus = 'updated';
+          } else {
+            scriptStatus = 'saved';
+          }
+        }
+        $('#editor-status').html('('+scriptStatus+' v'+scriptVersion.version+')');
       },
 
       updateScriptEditor: function(scriptVersion) {
@@ -476,7 +503,7 @@
 
       editorTextChanged: function() {
         if (!('saveTimeout' in scriptEditorView)) {
-          $('.editor-deploy').removeClass('inactive');
+          $('.editor-actions').removeClass('inactive');
           scriptEditorView.saveTimeout = setTimeout(scriptEditorView.saveScript, 1000);
           $('#editor-status').html('(changed)');
         }
@@ -494,15 +521,15 @@
       },
 
       scriptSaved: function(data) {
-        let status = $('#editor-status');
         scriptEditorView.updateCurrentScriptData(data);
       },
 
       updateCurrentScriptData: function(scriptVersion) {
-        scriptEditorView.scriptVersions.push(scriptVersion);
-        scriptEditorView.scriptVersion = scriptVersion;
+        // updateActionBar should be called before the scriptVersion is updated.
         scriptEditorView.updateActionBar(scriptVersion);
         scriptEditorView.updateErrors(scriptVersion);
+        scriptEditorView.scriptVersions.push(scriptVersion);
+        scriptEditorView.scriptVersion = scriptVersion;
       },
 
       scriptSaveFailed: function() {
@@ -518,6 +545,30 @@
           }},
           scriptEditorView.scriptDeployed,
           scriptEditorView.scriptDeployFailed);
+      },
+
+      startActionClicked: function() {
+        $('.editor-action-bar').toggleClass('hidden');
+        $('.editor-start-script').toggleClass('hidden');
+        $('.editor-start-scriptname').html(scriptEditorView.script.name);
+      },
+
+      startButtonClicked: function() {
+        let inputText = $('.editor-start-input-text').val();
+        let inputJson = inputText ? JSON.parse(inputText) : undefined;
+        executeCommand({ startScript: {
+            scriptVersionId: scriptEditorView.scriptVersion.id,
+            input: inputJson
+          }},
+          function(startResponse) {
+            alert('New script execution id: '+startResponse.scriptExecutionId);
+          },
+          errorView.showXHRError);
+      },
+
+      cancelStartClicked: function() {
+        $('.editor-action-bar').toggleClass('hidden');
+        $('.editor-start-script').toggleClass('hidden');
       },
 
       scriptDeployed: function(scriptVersion) {
@@ -566,7 +617,7 @@
       height: 32px
     }
 
-    #editor-deploy {
+    #editor-actions {
       display: inline-block;
     }
 
@@ -581,6 +632,31 @@
       overflow-y: auto;
       padding: 0;
       color: #DD5E17;
+    }
+
+    .editor-start-script {
+      padding: 1rem 0 1rem 0;
+    }
+
+    .editor-start-scriptname {
+      font-weight: bold;
+    }
+
+    .editor-start-title {
+      margin-bottom: 7px;
+    }
+
+    .editor-start-input-text {
+      width: 450px;
+      font-family: "Courier New";
+    }
+
+    .editor-start-actions {
+      margin: 7px 0 10px 0;
+    }
+
+    #editor-start-button {
+      margin: 0 10px 0 0;
     }
   </style>
 
