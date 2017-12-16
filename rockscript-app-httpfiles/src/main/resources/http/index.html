@@ -349,7 +349,7 @@
             '          <span class="editor-start-scriptname"></span>' +
             '        </div>\n' +
             '        <div class="editor-start-input-title">Input:</div>\n' +
-            '        <textarea class="editor-start-input-text" placeholder="{&quot;json&quot;: &quot;input&quot;,\n &quot;goes&quot;: &quot;here&quot;}"></textarea>\n' +
+            '        <textarea class="editor-start-input-text" placeholder="{&quot;optional&quot;: &quot;input&quot;,\n &quot;goes&quot;: &quot;here&quot;}"></textarea>\n' +
             '        <div class="editor-start-actions">\n' +
             '          <a id="editor-start-button" class="button" onclick="scriptEditorView.startButtonClicked()">Start</a>\n' +
             '          <a onclick="scriptEditorView.cancelStartClicked()">Cancel</a>\n' +
@@ -561,7 +561,7 @@
             input: inputJson
           }},
           function(startResponse) {
-            alert('New script execution id: '+startResponse.scriptExecutionId);
+            executionInspectorView.show(startResponse.scriptExecutionId);
           },
           errorView.showXHRError);
       },
@@ -752,6 +752,25 @@
             }
           }
         });
+
+        executionInspectorView.checkForUpdatesTimeOut = 5000;
+        setTimeout(executionInspectorView.checkForExecutionUpdates, 1000);
+      },
+
+      checkForExecutionUpdates: function() {
+        executeQuery('events?scriptExecutionId='+executionInspectorView.scriptExecution.id+'&minIndex='+executionInspectorView.scriptExecution.events.length,
+            executionInspectorView.checkEventsChanged,
+            errorView.showXHRError);
+      },
+
+      checkEventsChanged: function(events) {
+        if (events.length > 0) {
+          executionInspectorView.show(executionInspectorView.scriptExecution.id);
+        }
+        if (executionInspectorView.checkForUpdatesTimeOut<100000) {
+          setTimeout(executionInspectorView.checkForExecutionUpdates, executionInspectorView.checkForUpdatesTimeOut);
+          executionInspectorView.checkForUpdatesTimeOut *= 2;
+        }
       },
 
       executionInspectorHtml: function(scriptExecution) {
@@ -789,6 +808,7 @@
         scriptExecution.events.forEach(function (event, i) {
           let summaryHtml = null;
           let details = null;
+          let error = false;
           if (event.scriptStarted) {
             summaryHtml = 'Script started';
           } else if (event.variableCreated) {
@@ -818,6 +838,18 @@
               functionName: a.functionName,
               executionId: e.executionId };
             continuations[e.executionId] = { functionName: a.functionName, serviceName: a.serviceName };
+          } else if (event.serviceFunctionError) {
+            let e = event.serviceFunctionError;
+            let a = activityData[e.executionId];
+            summaryHtml = 'Function <code>' +a.functionName + '</code> failed';
+            details = {
+              error: e.error,
+              retryTime: e.retryTime,
+              service: a.serviceName,
+              functionName: a.functionName,
+              executionId: e.executionId };
+            continuations[e.executionId] = { functionName: a.functionName, serviceName: a.serviceName };
+            error = true;
           } else if (event.serviceFunctionEnded) {
             let e = event.serviceFunctionEnded;
             let a = activityData[e.executionId];
@@ -834,7 +866,7 @@
             summaryHtml = '<div class="event-error">'+event.activityError.error+'</div>';
           }
 
-          event.summaryHtml = '<div id="event-'+i+'" class="event">'+summaryHtml+'</div>';
+          event.summaryHtml = '<div id="event-'+i+'" class="event'+(error?' error-event':'')+'">'+summaryHtml+'</div>';
           event.detailsHtml = '<div class="event-details-title">'+summaryHtml+'</div>'+executionInspectorView.detailsHtml('dtls',details);
           event.runtimeState = {
             variables: $.extend(true, {}, variables), // $.extend clones the object
@@ -1008,8 +1040,8 @@
       overflow-wrap: break-word;
     }
 
-    .event-error {
-      background-color: pink;
+    .error-event {
+      background-color: #ffe8e8;
     }
 
     .selectedEvent {
