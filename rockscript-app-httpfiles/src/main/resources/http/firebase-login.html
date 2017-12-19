@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+  ~ Copyright (c) 2017 RockScript.io.
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~   http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <title>RockScript App</title>
+
+  <!-- https://firebase.google.com/docs/auth/web/start -->
+  <script src="js/firebase-4.6.2.js"></script>
+  <script src="js/firebaseui-2.4.1.js"></script>
+  <link type="text/css" rel="stylesheet" href="css/firebaseui-2.4.1.css" />
+
+  <!-- https://getbootstrap.com/docs/4.0/getting-started/download/ -->
+  <script type="application/javascript">
+    // This is a hack because bootstrap-4.0.0-beta.2 has a hard dependency on Tether,
+    // which is only used for tooltips which we don't need yet.
+    // https://stackoverflow.com/questions/34567939/how-to-fix-the-error-error-bootstrap-tooltips-require-tether-http-github-h
+    window.Tether = function () {
+      throw new Error('Your Bootstrap may actually need Tether.');
+    };
+  </script>
+  <script src="js/jquery-3.2.1.min.js"></script>
+  <script src="js/popper-1.12.3.min.js"></script>
+  <script src="js/bootstrap-4.0.0-beta.2.min.js"></script>
+  <link type="text/css" rel="stylesheet" href="css/bootstrap-4.0.0-beta.2.min.css" />
+
+  <!-- https://github.com/ajaxorg/ace-builds/tree/master/src-noconflict -->
+  <script src="js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+
+  <!--https://momentjs.com/downloads/moment.js-->
+  <script src="js/moment-2.18.1.js"></script>
+
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+
+  <!------------------------------->
+  <!-- Menu view              ----->
+  <!------------------------------->
+  <script type="application/javascript">
+    window.addEventListener('load', function() {
+      loginView.authenticate();
+    });
+
+    var loginView = {
+
+      authenticate: function() {
+        if (window.location.href.startsWith('http://localhost')) {
+          loginView.user = {
+            uid: 'devuseruid',
+            displayName: 'John Doe'
+          };
+          menuView.loginCompleted();
+          return;
+        }
+
+        // Initialize Firebase
+        firebase.initializeApp({
+          apiKey: "AIzaSyAEQoaLQIoErzAyKtq5tAMy3XyxiBd6AtY",
+          authDomain: "rockscript-app.firebaseapp.com",
+          databaseURL: "https://rockscript-app.firebaseio.com",
+          projectId: "rockscript-app",
+          storageBucket: "",
+          messagingSenderId: "849661592709"
+        });
+
+        // onAuthStateChanged is the way to capture the fully initialized user
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (user) {
+            loginView.user = user;
+            user.getIdToken().then(function(accessToken) {
+              console.log('user.getIdToken().accessToken: '+accessToken);
+              loginView.idToken = accessToken;
+              menuView.loginCompleted();
+            });
+          } else {
+            // User is signed out.
+            loginView.show();
+          }
+        }, function(error) {
+          console.log(error);
+        });
+      },
+
+      show: function() {
+        $('#content').html('<div id="login-panel"></div>');
+        // Initialize the FirebaseUI Widget using Firebase.
+        if (!loginView.ui) {
+          loginView.ui = new firebaseui.auth.AuthUI(firebase.auth());
+        }
+        // The start method will wait until the DOM is loaded.
+        loginView.ui.start('#login-panel', {
+          signInSuccessUrl: '#',
+          signInOptions: [
+            // Leave the lines as is for the providers you want to offer your users.
+            firebase.auth.EmailAuthProvider.PROVIDER_ID,
+            firebase.auth.GithubAuthProvider.PROVIDER_ID,
+            firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID
+          ],
+          // Terms of service url.
+          tosUrl: 'http://rockscript.io/terms-of-service'
+        });
+      }
+    };
+
+  </script>
+  
+  
+  <!------------------------------->
+  <!-- Menu view              ----->
+  <!------------------------------->
+  <script type="application/javascript">
+    var menuView = {
+
+      loginCompleted: function() {
+        // show the menu
+        $('#navbar-content').html(
+            '<ul class="navbar-nav">\n' +
+            '  <li id="menu-scripts" class="nav-item">\n' +
+            '    <a class="nav-link" onclick="menuView.scriptsClicked()">Scripts</a>\n' +
+            '  </li>\n' +
+            '  <li id="menu-executions" class="nav-item">\n' +
+            '    <a class="nav-link" onclick="menuView.scriptExecutionsClicked()">Executions</a>\n' +
+            '  </li>\n' +
+//            '  <li id="menu-test" class="nav-item">\n' +
+//            '    <a class="nav-link" onclick="menuView.testClicked()">Test</a>\n' +
+//            '  </li>\n' +
+            '</ul>\n' +
+            '<ul class="navbar-nav ml-auto">\n' +
+            '  <li id="navbar-user-name-dropdown" class="nav-item dropdown">\n' +
+            '    <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">\n' +
+            '      <div id="navbar-user-name">'+loginView.user.displayName+'</div> <span class="caret"></span>\n' +
+            '    </a>\n' +
+            '    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">\n' +
+            '      <a class="dropdown-item" onclick="menuView.logoutClicked()">Logout</a>\n' +
+            '    </div>\n' +
+            '  </li>\n' +
+            '</ul>\n');
+      },
+
+      logoutClicked: function() {
+        delete menuView.user;
+        $('#navbar-content').html('');
+        firebase.auth().signOut();
+        loginView.show();
+      },
+    };
+  </script>
+</head>
+<body>
+</body>
+</html>

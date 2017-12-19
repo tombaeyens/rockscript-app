@@ -32,6 +32,8 @@ import io.rockscript.engine.impl.ContinuationReference;
 import io.rockscript.http.server.HttpServer;
 import io.rockscript.test.LatestServerExceptionListener;
 import io.rockscript.test.SimpleImportProvider;
+import io.rockscript.test.TestEngine;
+import io.rockscript.test.engine.TestEngineProvider;
 import io.rockscript.test.server.AbstractServerTest;
 import io.rockscript.util.Io;
 import org.junit.Test;
@@ -57,8 +59,13 @@ public class AppServerTest extends AbstractServerTest {
   }
 
   @Override
-  protected Engine createEngine() {
-    return new AppEngine();
+  public TestEngineProvider getEngineProvider() {
+    return new TestEngineProvider() {
+      @Override
+      public Engine createEngine() {
+        return new AppEngine().start();
+      }
+    };
   }
 
   @Test

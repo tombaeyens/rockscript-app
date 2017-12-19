@@ -5,13 +5,15 @@
   <title>RockScript App</title>
 
   <style>
+
     @font-face {
       font-family: 'Roboto Slab';
       font-style: normal;
-      font-weight: 300;
-      src: local('Roboto Slab'), local('RobotoSlab'), url(fonts/roboto-slab-300.woff2) format('woff2');
+      font-weight: 100;
+      src: local('Roboto Slab Thin'), local('RobotoSlab-Thin'), url(fonts/roboto-slab-100.woff2) format('woff2');
       unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
     }
+
     @font-face {
       font-family: 'Open Sans';
       font-style: normal;
@@ -19,6 +21,7 @@
       src: local('Open Sans Regular'), local('OpenSans-Regular'), url(fonts/open-sans-400.woff2) format('woff2');
       unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
     }
+
     @font-face {
       font-family: 'Open Sans';
       font-style: normal;
@@ -138,81 +141,12 @@
   <!-- Menu view              ----->
   <!------------------------------->
   <script type="application/javascript">
-    var loginView = {
-
-      authenticate: function() {
-        if (window.location.href.startsWith('http://localhost')) {
-          loginView.user = {
-            uid: 'devuseruid',
-            displayName: 'John Doe'
-          };
-          menuView.loginCompleted();
-          return;
-        }
-
-        // Initialize Firebase
-        firebase.initializeApp({
-          apiKey: "AIzaSyAEQoaLQIoErzAyKtq5tAMy3XyxiBd6AtY",
-          authDomain: "rockscript-app.firebaseapp.com",
-          databaseURL: "https://rockscript-app.firebaseio.com",
-          projectId: "rockscript-app",
-          storageBucket: "",
-          messagingSenderId: "849661592709"
-        });
-
-        // onAuthStateChanged is the way to capture the fully initialized user
-        firebase.auth().onAuthStateChanged(function(user) {
-          if (user) {
-            loginView.user = user;
-            user.getIdToken().then(function(accessToken) {
-              console.log('user.getIdToken().accessToken: '+accessToken);
-              loginView.idToken = accessToken;
-              menuView.loginCompleted();
-            });
-          } else {
-            // User is signed out.
-            loginView.show();
-          }
-        }, function(error) {
-          console.log(error);
-        });
-      },
-
-      show: function() {
-        $('#content').html('<div id="login-panel"></div>');
-        // Initialize the FirebaseUI Widget using Firebase.
-        if (!loginView.ui) {
-          loginView.ui = new firebaseui.auth.AuthUI(firebase.auth());
-        }
-        // The start method will wait until the DOM is loaded.
-        loginView.ui.start('#login-panel', {
-          signInSuccessUrl: '#',
-          signInOptions: [
-            // Leave the lines as is for the providers you want to offer your users.
-            firebase.auth.EmailAuthProvider.PROVIDER_ID,
-            firebase.auth.GithubAuthProvider.PROVIDER_ID,
-            firebase.auth.TwitterAuthProvider.PROVIDER_ID,
-            firebase.auth.GoogleAuthProvider.PROVIDER_ID
-          ],
-          // Terms of service url.
-          tosUrl: 'http://rockscript.io/terms-of-service'
-        });
-      }
-    };
-
     window.addEventListener('load', function() {
-      loginView.authenticate();
+      menuView.show();
     });
-  </script>
-  
-  
-  <!------------------------------->
-  <!-- Menu view              ----->
-  <!------------------------------->
-  <script type="application/javascript">
     var menuView = {
 
-      loginCompleted: function() {
+      show: function() {
         $('#navbar-content').html(
             '<ul class="navbar-nav">\n' +
             '  <li id="menu-scripts" class="nav-item">\n' +
@@ -221,28 +155,32 @@
             '  <li id="menu-executions" class="nav-item">\n' +
             '    <a class="nav-link" onclick="menuView.scriptExecutionsClicked()">Executions</a>\n' +
             '  </li>\n' +
+            '  <li id="menu-executions" class="nav-item">\n' +
+            '    <a class="nav-link" href="docs/">Docs</a>\n' +
+            '  </li>\n' +
 //            '  <li id="menu-test" class="nav-item">\n' +
 //            '    <a class="nav-link" onclick="menuView.testClicked()">Test</a>\n' +
 //            '  </li>\n' +
-            '</ul>\n' +
-            '<ul class="navbar-nav ml-auto">\n' +
-            '  <li id="navbar-user-name-dropdown" class="nav-item dropdown">\n' +
-            '    <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">\n' +
-            '      <div id="navbar-user-name">'+loginView.user.displayName+'</div> <span class="caret"></span>\n' +
-            '    </a>\n' +
-            '    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">\n' +
-            '      <a class="dropdown-item" onclick="menuView.logoutClicked()">Logout</a>\n' +
-            '    </div>\n' +
-            '  </li>\n' +
-            '</ul>\n');
+            '</ul>\n'
+//            '<ul class="navbar-nav ml-auto">\n' +
+//            '  <li id="navbar-user-name-dropdown" class="nav-item dropdown">\n' +
+//            '    <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">\n' +
+//            '      <div id="navbar-user-name">'+loginView.user.displayName+'</div> <span class="caret"></span>\n' +
+//            '    </a>\n' +
+//            '    <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">\n' +
+//            '      <a class="dropdown-item" onclick="menuView.logoutClicked()">Logout</a>\n' +
+//            '    </div>\n' +
+//            '  </li>\n' +
+//            '</ul>\n'
+        );
       },
 
-      logoutClicked: function() {
-        delete menuView.user;
-        $('#navbar-content').html('');
-        firebase.auth().signOut();
-        loginView.show();
-      },
+//      logoutClicked: function() {
+//        delete menuView.user;
+//        $('#navbar-content').html('');
+//        firebase.auth().signOut();
+//        loginView.show();
+//      },
 
       scriptsClicked: function() {
         $('.navbar-nav li').removeClass("active");
@@ -254,38 +192,38 @@
         $('.navbar-nav li').removeClass("active");
         $('#menu-executions').addClass("active");
         executionsView.show();
-      },
-
-      testClicked: function() {
-        $('.navbar-nav li').removeClass("active");
-        $('#menu-test').addClass("active");
-        testView.show();
       }
+
+//      testClicked: function() {
+//        $('.navbar-nav li').removeClass("active");
+//        $('#menu-test').addClass("active");
+//        testView.show();
+//      }
     };
   </script>
   <!-- AppServer component style -->
   <style>
     .bg-primary {
-      background-color: #2B7191 !important;
+      background-color: #1A7CB1 !important;
       color: white;
     }
 
     #brand {
+      font-family: "Roboto Slab";
+      font-weight: 100;
+      letter-spacing: 0.4px;
+      font-size: 1.1em;
+      opacity: .7;
+      margin-right: 25px;
       color: white;
     }
 
     .navbar-nav a, .navbar-nav a:visited, .navbar-nav a:not([href]):not([tabindex]) {
       font-weight: normal;
     }
-    .navbar-brand {
-      font-size: .9em;
-      font-family: "Roboto Slab";
-      font-weight: 100;
-      opacity: .6;
-      margin-right: 25px;
-    }
+
     .navbar-brand img {
-      vertical-align: text-top;
+      vertical-align: baseline;
     }
     .navbar-dark .navbar-nav .nav-link {
       color: rgba(255,255,255,.9);
@@ -1213,6 +1151,7 @@
     .test-name {
       display: inline-block;
     }
+
   </style>
 
   <!------------------------------->

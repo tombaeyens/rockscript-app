@@ -57,4 +57,13 @@
     <module>rockscript-app-war</module>
   </modules>
 
+  <profiles>
+    <profile>
+      <id>izza</id>
+      <properties>
+        <property>skipTests</property>
+      </properties>
+    </profile>
+  </profiles>
+
 </project>
