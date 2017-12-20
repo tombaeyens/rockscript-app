@@ -756,8 +756,8 @@
               variable: e.variableName,
               value: e.value };
             variables[e.variableName] = e.value;
-          } else if (event.serviceFunctionStarting) {
-            let e = event.serviceFunctionStarting;
+          } else if (event.serviceFunctionStarted) {
+            let e = event.serviceFunctionStarted;
             summaryHtml = 'Function <code>' +e.functionName + '</code> was started ';
             details = {
               args: e.args,
@@ -766,9 +766,9 @@
               executionId: e.executionId };
             activityData[e.executionId] = {
               functionName: e.functionName,
-              serviceName: e.serviceName };
-          } else if (event.serviceFunctionWaiting) {
-            let e = event.serviceFunctionWaiting;
+              serviceName: e.serviceName};
+          } else if (event.serviceFunctionWaited) {
+            let e = event.serviceFunctionWaited;
             let a = activityData[e.executionId];
             summaryHtml = 'Function <code>' +a.functionName + '</code> waiting for callback';
             details = {
@@ -776,8 +776,8 @@
               functionName: a.functionName,
               executionId: e.executionId };
             continuations[e.executionId] = { functionName: a.functionName, serviceName: a.serviceName };
-          } else if (event.serviceFunctionError) {
-            let e = event.serviceFunctionError;
+          } else if (event.serviceFunctionFailed) {
+            let e = event.serviceFunctionFailed;
             let a = activityData[e.executionId];
             summaryHtml = 'Function <code>' +a.functionName + '</code> failed';
             details = {
@@ -789,8 +789,8 @@
             continuations[e.executionId] = { functionName: a.functionName, serviceName: a.serviceName };
             error = true;
 
-          } else if (event.serviceFunctionRetrying) {
-            let e = event.serviceFunctionRetrying;
+          } else if (event.serviceFunctionRetried) {
+            let e = event.serviceFunctionRetried;
             let a = activityData[e.executionId];
             summaryHtml = 'Function <code>' +a.functionName + '</code> retry started';
             details = {
