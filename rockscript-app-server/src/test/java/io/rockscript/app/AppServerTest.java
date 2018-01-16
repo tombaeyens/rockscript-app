@@ -137,20 +137,20 @@ public class AppServerTest extends AbstractServerTest {
       .getBodyAs(new TypeToken<List<ScriptExecutionsQuery.ScriptExecution>>() {}.getType());
 
     ScriptExecutionsQuery.ScriptExecution scriptExecution = scriptExecutions.get(0);
-    assertEquals("se1", scriptExecution.id);
-    assertEquals("sn", scriptExecution.scriptName);
-    assertEquals("sn", scriptExecution.scriptShortName);
-    assertEquals(1, (int)scriptExecution.scriptVersion);
-    assertNotNull(scriptExecution.start);
-    assertNotNull(scriptExecution.end);
-
-    scriptExecution = scriptExecutions.get(1);
     assertEquals("se2", scriptExecution.id);
     assertEquals("sn", scriptExecution.scriptName);
     assertEquals("sn", scriptExecution.scriptShortName);
     assertEquals(1, (int)scriptExecution.scriptVersion);
     assertNotNull(scriptExecution.start);
     assertNull(scriptExecution.end);
+
+    scriptExecution = scriptExecutions.get(1);
+    assertEquals("se1", scriptExecution.id);
+    assertEquals("sn", scriptExecution.scriptName);
+    assertEquals("sn", scriptExecution.scriptShortName);
+    assertEquals(1, (int)scriptExecution.scriptVersion);
+    assertNotNull(scriptExecution.start);
+    assertNotNull(scriptExecution.end);
 
     ScriptExecutionQuery.ScriptExecutionDetails scriptExecutionDetails =
         newGet("/query/script-execution?id=se1")
