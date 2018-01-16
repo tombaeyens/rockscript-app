@@ -19,31 +19,37 @@
  */
 package io.rockscript.app;
 
-import io.rockscript.Engine;
+import io.rockscript.Configuration;
 import io.rockscript.FileHandler;
-import io.rockscript.util.Maps;
+import io.rockscript.api.CommandHandler;
+import io.rockscript.api.QueryHandler;
+import io.rockscript.engine.PingHandler;
 
 import java.util.Map;
 
-import static io.rockscript.util.Maps.entry;
-import static io.rockscript.util.Maps.hashMap;
+public class AppConfiguration extends Configuration {
 
-public class AppEngine extends Engine {
-
-  public AppEngine(String[] args) {
-    super(args);
+  public AppConfiguration() {
+    configureTest();
   }
 
-  public AppEngine(Map<String,String> configuration) {
-    super(configuration);
+  public AppConfiguration(String[] args) {
+    this();
+    configureArgs(args);
   }
 
-  public AppEngine() {
-    super(hashMap(entry(CFG_KEY_ENGINE, CFG_VALUE_ENGINE_TEST)));
+  public AppConfiguration(Map<String, String> configurationProperties) {
+    this();
+    configureProperties(configurationProperties);
   }
 
   @Override
-  protected FileHandler createFileHandler() {
-    return new AppFileHandler(this);
+  protected void initializeRequestHandlers() {
+    // The first 3 request handlers are the same as in super.initializeRequestHandlers()
+    addRequestHandler(new CommandHandler());
+    addRequestHandler(new QueryHandler());
+    addRequestHandler(new PingHandler());
+    // The AppFileHandler is customized for the App
+    addRequestHandler(new AppFileHandler());
   }
 }

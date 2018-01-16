@@ -5,7 +5,6 @@ package io.rockscript.app;
 
 import io.rockscript.Engine;
 import io.rockscript.Server;
-import io.rockscript.test.TestEngine;
 import io.rockscript.http.server.HttpServer;
 
 public class AppServer extends Server {
@@ -16,7 +15,8 @@ public class AppServer extends Server {
 
   @Override
   protected Engine createEngine(String[] args) {
-    return new AppEngine(args);
+    return new AppConfiguration(args)
+      .build();
   }
 
   @Override

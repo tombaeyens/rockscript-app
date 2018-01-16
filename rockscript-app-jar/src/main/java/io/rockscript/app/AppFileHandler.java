@@ -11,10 +11,6 @@ import io.rockscript.util.Io;
 
 public class AppFileHandler extends FileHandler {
 
-  public AppFileHandler(Engine engine) {
-    super(engine);
-  }
-
   @Override
   public boolean matches(ServerRequest request) {
     return true;
