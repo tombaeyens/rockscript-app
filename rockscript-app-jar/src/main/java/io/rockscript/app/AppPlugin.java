@@ -7,7 +7,7 @@ import io.rockscript.EnginePlugin;
 public class AppPlugin implements EnginePlugin {
 
   @Override
-  public void configure(Configuration configuration) {
+  public void configure(Configuration configuration, Engine engine) {
 
   }
 }
