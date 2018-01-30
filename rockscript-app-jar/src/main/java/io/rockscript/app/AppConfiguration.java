@@ -30,16 +30,13 @@ import java.util.Map;
 public class AppConfiguration extends Configuration {
 
   public AppConfiguration() {
-    configureTest();
   }
 
   public AppConfiguration(String[] args) {
-    this();
     configureArgs(args);
   }
 
   public AppConfiguration(Map<String, String> configurationProperties) {
-    this();
     configureProperties(configurationProperties);
   }
 

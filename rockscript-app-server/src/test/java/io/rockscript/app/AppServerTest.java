@@ -63,6 +63,7 @@ public class AppServerTest extends AbstractServerTest {
       @Override
       public Engine createEngine() {
         return new AppConfiguration()
+          .configureTest()
           .build()
           .start();
       }

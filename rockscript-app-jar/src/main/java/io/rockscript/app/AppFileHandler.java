@@ -26,6 +26,8 @@ public class AppFileHandler extends FileHandler {
     String path = request.getPathInfo();
     if (path.endsWith("/")) {
       path += "index.html";
+    } else if (isDocs(path)) {
+      path += ".html";
     }
     String resource = "http"+path;
     if (Io.hasResource(resource)) {
